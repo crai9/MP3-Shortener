@@ -119,6 +119,9 @@ namespace Thumbnails_WorkerRole
             using (Stream output = outputBlob.OpenWrite())
             {
                 ConvertSound(input, output);
+                string instanceId = RoleEnvironment.CurrentRoleInstance.Id;
+                var instanceIndex = instanceId.Substring(instanceId.LastIndexOf("_") + 1);
+                Trace.WriteLine("Role instance index: " + instanceIndex);
                 outputBlob.Properties.ContentType = "image/mpeg3";
             }
             Trace.TraceInformation("Generated thumbnail in blob {0}", thumbnailName);

@@ -29,7 +29,7 @@ namespace Thumbnails_WorkerRole
            return Path.Combine(Environment.GetEnvironmentVariable("RoleRoot") + @"\", @"approot\ffmpeg.exe");
         }
 
-        public static String GetExeArgs(String inPath, String outPath, int seconds = 25)
+        public static String GetExeArgs(String inPath, String outPath, int seconds = 10)
         {
             return "-t "+ seconds + " -i " + inPath + " -acodec copy " + outPath;
         }
@@ -170,25 +170,20 @@ namespace Thumbnails_WorkerRole
 
             CropSound();
 
-            using (Stream input = inputBlob.OpenRead())
-            using (Stream output = outputBlob.OpenWrite())
-            {
-                ConvertSound(input, output);
-                string instanceId = RoleEnvironment.CurrentRoleInstance.Id;
-                var instanceIndex = instanceId.Substring(instanceId.LastIndexOf("_") + 1);
-                Trace.WriteLine("Role instance index: " + instanceIndex);
+            string instanceId = RoleEnvironment.CurrentRoleInstance.Id;
+            var instanceIndex = instanceId.Substring(instanceId.LastIndexOf("_") + 1);
+            Trace.WriteLine("Role instance index: " + instanceIndex);
 
-                outputBlob.Properties.ContentType = "image/mpeg3";
+
+            outputBlob.Properties.ContentType = "image/mpeg3";
+
+            using (var fileStream = System.IO.File.OpenRead(fullOutPath))
+            {
+                outputBlob.UploadFromStream(fileStream);
             }
+
             Trace.TraceInformation("Generated thumbnail in blob {0}", thumbnailName);
 
-            // Delete the message from the queue. This isn't
-            // done until all the processing has been successfully
-            // accomplished, so we know we won't miss one in the case of 
-            // an exception. However, in that case, we might execute
-            // this code more than once. This is a good example
-            // of "at least once" design, which is appropriate 
-            // for many cases. 
 
             imagesQueue.DeleteMessage(msg);
         }

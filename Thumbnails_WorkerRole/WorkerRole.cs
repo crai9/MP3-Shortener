@@ -18,15 +18,26 @@ namespace Thumbnails_WorkerRole
     {
         private CloudQueue imagesQueue;
         private CloudBlobContainer imagesBlobContainer;
+        private String fullInPath;
 
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
-        public String GetExePath()
+        public static String GetExePath()
         {
            return Path.Combine(Environment.GetEnvironmentVariable("RoleRoot") + @"\", @"approot\ffmpeg.exe");
         }
 
+        public static String GetExeArgs(String inPath, String outPath, int seconds = 30)
+        {
+            return "-t "+ seconds + " -i " + inPath + " -acodec copy " + outPath;
+        }
+
+        public static String GetLocalStoragePath()
+        {
+            LocalResource l = RoleEnvironment.GetLocalResource("LocalSoundStore");
+            return string.Format(l.RootPath);
+        }
         public override bool OnStart()
         {
             // Set the maximum number of concurrent connections.
@@ -38,8 +49,11 @@ namespace Thumbnails_WorkerRole
 
             Trace.TraceInformation("Exe located at: " + GetExePath());
             Trace.TraceInformation("Creating photogallery blob container");
+
+
             var blobClient = storageAccount.CreateCloudBlobClient();
             imagesBlobContainer = blobClient.GetContainerReference("photogallery");
+
             if (imagesBlobContainer.CreateIfNotExists())
             {
                 // Enable public access on the newly created "photogallery" container.
@@ -50,12 +64,14 @@ namespace Thumbnails_WorkerRole
                     });
             }
 
+            
             Trace.TraceInformation("Creating thumbnails queue");
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
             imagesQueue = queueClient.GetQueueReference("thumbnailmaker");
             imagesQueue.CreateIfNotExists();
 
             Trace.TraceInformation("Storage initialized");
+            Trace.TraceInformation("localStorage path: " + GetLocalStoragePath());
             return base.OnStart();
         }
 
@@ -97,22 +113,26 @@ namespace Thumbnails_WorkerRole
 
         private void ProcessQueueMessage(CloudQueueMessage msg)
         {
-            // The message's contents contains the name of
-            // the blob containing the complete photo.
 
             string path = msg.AsString;
+
             Trace.TraceInformation(string.Format("*** WorkerRole: Dequeued '{0}'", path));
 
-            // Fetch the blob containing the photo
-
             CloudBlockBlob inputBlob = imagesBlobContainer.GetBlockBlobReference(path);
+
+            string folder = path.Split('/')[0];
+            System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"\" + folder);
+            imagesBlobContainer.GetBlockBlobReference(path).DownloadToFile(GetLocalStoragePath() + path, FileMode.Create);
+
+            fullInPath = GetLocalStoragePath() + path;
 
             // Create a new blob with the string "thumbnails/" prepended
             // to the photo name. Set its ContentType property.
 
-            string thumbnailName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "changed.mp3";
-            CloudBlockBlob outputBlob = this.imagesBlobContainer.GetBlockBlobReference("thumbnails/" + thumbnailName);
+            Trace.TraceInformation("Full original file path: " + fullInPath);
 
+            string thumbnailName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "changed.mp3";
+            CloudBlockBlob outputBlob = this.imagesBlobContainer.GetBlockBlobReference("out/" + thumbnailName);
             // Notice that ConvertImageToThumbnailJPG() can read/write directly to the blobs using streams
 
             using (Stream input = inputBlob.OpenRead())
@@ -121,7 +141,8 @@ namespace Thumbnails_WorkerRole
                 ConvertSound(input, output);
                 string instanceId = RoleEnvironment.CurrentRoleInstance.Id;
                 var instanceIndex = instanceId.Substring(instanceId.LastIndexOf("_") + 1);
-                Trace.WriteLine("Role instance index: " + instanceIndex);
+                Trace.WriteLine("Role instance index: " + instanceIndex);
+
                 outputBlob.Properties.ContentType = "image/mpeg3";
             }
             Trace.TraceInformation("Generated thumbnail in blob {0}", thumbnailName);

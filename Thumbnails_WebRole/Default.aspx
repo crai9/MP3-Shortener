@@ -32,7 +32,7 @@
                                     <source src="<%# Eval("Url") %>" type="audio/mpeg">
                                     Can't use audio element on your browser
                                 </audio>
-                                <label>File Name</label>
+                                <label>File Name: <%# Eval("Name") %></label>
                             </div>
                         </ItemTemplate>
                     </asp:ListView>

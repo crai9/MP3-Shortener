@@ -21,5 +21,10 @@
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
       <Setting name="StorageConnectionString" />
     </ConfigurationSettings>
+    <LocalResources>
+      <LocalStorage name="LocalSoundStore" cleanOnRoleRecycle="true" sizeInMB="2048" />
+      <LocalStorage name="LocalStorage1" cleanOnRoleRecycle="true" sizeInMB="64" />
+      <LocalStorage name="LocalImageStore" cleanOnRoleRecycle="true" sizeInMB="2048" />
+    </LocalResources>
   </WorkerRole>
 </ServiceDefinition>

@@ -159,7 +159,7 @@ namespace Thumbnails_WebRole
                 // Go to the container, instantiate a new blob
                 // with the descriptive name
 
-                String path = "in/" + name;
+                String path = @"in\" + name;
 
                 var blob = GetPhotoGalleryContainer().GetBlockBlobReference(path);
 

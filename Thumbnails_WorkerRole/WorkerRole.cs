@@ -19,6 +19,7 @@ namespace Thumbnails_WorkerRole
         private CloudQueue imagesQueue;
         private CloudBlobContainer imagesBlobContainer;
         private String fullInPath;
+        private String fullOutPath;
 
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
@@ -28,7 +29,7 @@ namespace Thumbnails_WorkerRole
            return Path.Combine(Environment.GetEnvironmentVariable("RoleRoot") + @"\", @"approot\ffmpeg.exe");
         }
 
-        public static String GetExeArgs(String inPath, String outPath, int seconds = 30)
+        public static String GetExeArgs(String inPath, String outPath, int seconds = 25)
         {
             return "-t "+ seconds + " -i " + inPath + " -acodec copy " + outPath;
         }
@@ -38,6 +39,36 @@ namespace Thumbnails_WorkerRole
             LocalResource l = RoleEnvironment.GetLocalResource("LocalSoundStore");
             return string.Format(l.RootPath);
         }
+
+        private bool CropSound()
+        {
+            bool success = false;
+
+            try
+            {
+                Process proc = new Process();
+                proc.StartInfo.FileName = GetExePath();
+                proc.StartInfo.Arguments = GetExeArgs(fullInPath, fullOutPath);
+                proc.StartInfo.CreateNoWindow = true;
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.ErrorDialog = false;
+
+                proc.Start();
+                proc.WaitForExit();
+                success = true;
+
+                Trace.TraceInformation("It worked???");
+
+            } catch(Exception e)
+            {
+                Trace.TraceError(e.StackTrace);
+            }
+
+
+
+            return success;
+        }
+
         public override bool OnStart()
         {
             // Set the maximum number of concurrent connections.
@@ -120,7 +151,7 @@ namespace Thumbnails_WorkerRole
 
             CloudBlockBlob inputBlob = imagesBlobContainer.GetBlockBlobReference(path);
 
-            string folder = path.Split('/')[0];
+            string folder = path.Split('\\')[0];
             System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"\" + folder);
             imagesBlobContainer.GetBlockBlobReference(path).DownloadToFile(GetLocalStoragePath() + path, FileMode.Create);
 
@@ -131,9 +162,13 @@ namespace Thumbnails_WorkerRole
 
             Trace.TraceInformation("Full original file path: " + fullInPath);
 
-            string thumbnailName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "changed.mp3";
-            CloudBlockBlob outputBlob = this.imagesBlobContainer.GetBlockBlobReference("out/" + thumbnailName);
-            // Notice that ConvertImageToThumbnailJPG() can read/write directly to the blobs using streams
+            string thumbnailName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "cropped.mp3";
+
+            fullOutPath = GetLocalStoragePath() + @"out\" + thumbnailName;
+            CloudBlockBlob outputBlob = this.imagesBlobContainer.GetBlockBlobReference(@"out\" + thumbnailName);
+            System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"out\");
+
+            CropSound();
 
             using (Stream input = inputBlob.OpenRead())
             using (Stream output = outputBlob.OpenWrite())
@@ -172,7 +207,6 @@ namespace Thumbnails_WorkerRole
 
         }
 
-        // Create thumbnail - the detail is unimportant
         public void ConvertImageToThumbnailJPG(Stream input, Stream output)
         {
             int thumbnailsize = 128;

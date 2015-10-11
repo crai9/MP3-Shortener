@@ -199,15 +199,29 @@ namespace Thumbnails_WebRole
             }
         }
 
-        
+        protected String GetTitle(Uri blobURI)
+        {
+            CloudBlockBlob blob = new CloudBlockBlob(blobURI);
+            blob.FetchAttributes();
+            return blob.Metadata["Title"];
+        }
+
+        protected String GetInstanceIndex(Uri blobURI)
+        {
+            CloudBlockBlob blob = new CloudBlockBlob(blobURI);
+            blob.FetchAttributes();
+            return blob.Metadata["InstanceNo"];
+        }
+
 
         protected void Page_PreRender(object sender, EventArgs e)
         {
+
             try
             { 
 
                 ThumbnailDisplayControl.DataSource = from o in GetPhotoGalleryContainer().GetDirectoryReference("out").ListBlobs()
-                                                     select new { Url = o.Uri, Name = o.Container.Metadata.Values};
+                                                     select new { Url = o.Uri, Name = GetTitle(o.Uri), Instance = GetInstanceIndex(o.Uri)};
                 
                 ThumbnailDisplayControl.DataBind();
             }

@@ -20,6 +20,7 @@ namespace Thumbnails_WorkerRole
         private CloudBlobContainer imagesBlobContainer;
         private String fullInPath;
         private String fullOutPath;
+        private String fileTitle;
 
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
@@ -40,7 +41,13 @@ namespace Thumbnails_WorkerRole
             return string.Format(l.RootPath);
         }
 
-        private bool CropSound()
+        public static String GetInstanceIndex()
+        {
+            string instanceId = RoleEnvironment.CurrentRoleInstance.Id;
+            return instanceId.Substring(instanceId.LastIndexOf("_") + 1);
+        }
+
+        private bool CropSound(int seconds = 30)
         {
             bool success = false;
 
@@ -48,7 +55,7 @@ namespace Thumbnails_WorkerRole
             {
                 Process proc = new Process();
                 proc.StartInfo.FileName = GetExePath();
-                proc.StartInfo.Arguments = GetExeArgs(fullInPath, fullOutPath);
+                proc.StartInfo.Arguments = GetExeArgs(fullInPath, fullOutPath, seconds);
                 proc.StartInfo.CreateNoWindow = true;
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.ErrorDialog = false;
@@ -156,11 +163,9 @@ namespace Thumbnails_WorkerRole
             imagesBlobContainer.GetBlockBlobReference(path).DownloadToFile(GetLocalStoragePath() + path, FileMode.Create);
 
             fullInPath = GetLocalStoragePath() + path;
-
-            // Create a new blob with the string "thumbnails/" prepended
-            // to the photo name. Set its ContentType property.
-
             Trace.TraceInformation("Full original file path: " + fullInPath);
+
+
 
             string thumbnailName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "cropped.mp3";
 
@@ -168,80 +173,32 @@ namespace Thumbnails_WorkerRole
             CloudBlockBlob outputBlob = this.imagesBlobContainer.GetBlockBlobReference(@"out\" + thumbnailName);
             System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"out\");
 
-            CropSound();
-
-            string instanceId = RoleEnvironment.CurrentRoleInstance.Id;
-            var instanceIndex = instanceId.Substring(instanceId.LastIndexOf("_") + 1);
-            Trace.WriteLine("Role instance index: " + instanceIndex);
-
+            CropSound(10);
 
             outputBlob.Properties.ContentType = "image/mpeg3";
 
-            using (var fileStream = System.IO.File.OpenRead(fullOutPath))
+            TagLib.File tagFile = TagLib.File.Create(fullOutPath);
+
+            tagFile.Tag.Comment = "Shortened on WorkerRole Instance " + GetInstanceIndex();
+            tagFile.Tag.Conductor = "Craig";
+            fileTitle = tagFile.Tag.Title ?? "File has no original Title Tag"; //Check that title tag isn't null
+            tagFile.Save();
+
+            using (var fileStream = File.OpenRead(fullOutPath))
             {
                 outputBlob.UploadFromStream(fileStream);
             }
 
-            Trace.TraceInformation("Generated thumbnail in blob {0}", thumbnailName);
+            outputBlob.FetchAttributes();
+            outputBlob.Metadata["Title"] = fileTitle;
+            outputBlob.Metadata["InstanceNo"] = GetInstanceIndex();
+            outputBlob.SetMetadata();
 
-
+            //remove message from queue
             imagesQueue.DeleteMessage(msg);
-        }
 
-        public void ConvertSound(Stream input, Stream output)
-        {
-            //logic goes here
-
-            BinaryReader br = new BinaryReader(input);
-            byte[] bytes = br.ReadBytes((int)input.Length);
-
-            using (var writer = new BinaryWriter(output))
-            {
-                writer.Write(bytes);
-            }
-
-        }
-
-        public void ConvertImageToThumbnailJPG(Stream input, Stream output)
-        {
-            int thumbnailsize = 128;
-            int width;
-            int height;
-            var originalImage = new Bitmap(input);
-
-            if (originalImage.Width > originalImage.Height)
-            {
-                width = thumbnailsize;
-                height = thumbnailsize * originalImage.Height / originalImage.Width;
-            }
-            else
-            {
-                height = thumbnailsize;
-                width = thumbnailsize * originalImage.Width / originalImage.Height;
-            }
-
-            Bitmap thumbnailImage = null;
-            try
-            {
-                thumbnailImage = new Bitmap(width, height);
-
-                using (Graphics graphics = Graphics.FromImage(thumbnailImage))
-                {
-                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                    graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                    graphics.DrawImage(originalImage, 0, 0, width, height);
-                }
-
-                thumbnailImage.Save(output, ImageFormat.Jpeg);
-            }
-            finally
-            {
-                if (thumbnailImage != null)
-                {
-                    thumbnailImage.Dispose();
-                }
-            }
+            //remove initial blob
+            inputBlob.Delete();
         }
 
         public override void OnStop()

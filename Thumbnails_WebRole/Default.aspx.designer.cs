@@ -7,7 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Thumbnails_WebRole {
+namespace Shortener_WebRole {
     
     
     public partial class _Default {
@@ -67,12 +67,12 @@ namespace Thumbnails_WebRole {
         protected global::System.Web.UI.UpdatePanel up1;
         
         /// <summary>
-        /// ThumbnailDisplayControl control.
+        /// SoundsDisplayControl control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.ListView ThumbnailDisplayControl;
+        protected global::System.Web.UI.WebControls.ListView SoundsDisplayControl;
     }
 }

@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "Thumbnails", "Thumbnails\Thumbnails.ccproj", "{DFF55BBF-05FF-4581-8B50-83BC11C01E7D}"
+Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "Shortener", "Thumbnails\Shortener.ccproj", "{DFF55BBF-05FF-4581-8B50-83BC11C01E7D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thumbnails_WebRole", "Thumbnails_WebRole\Thumbnails_WebRole.csproj", "{FCEEF1EB-84D0-4CAA-A155-E2FDA1E62322}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shortener_WebRole", "Thumbnails_WebRole\Shortener_WebRole.csproj", "{FCEEF1EB-84D0-4CAA-A155-E2FDA1E62322}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thumbnails_WorkerRole", "Thumbnails_WorkerRole\Thumbnails_WorkerRole.csproj", "{062CE8CE-C64A-4CE8-A4B7-88CD5BA755AC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shortener_WorkerRole", "Thumbnails_WorkerRole\Shortener_WorkerRole.csproj", "{062CE8CE-C64A-4CE8-A4B7-88CD5BA755AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

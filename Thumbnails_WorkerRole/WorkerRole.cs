@@ -12,12 +12,12 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System;
 
-namespace Thumbnails_WorkerRole
+namespace Shortener_WorkerRole
 {
     public class WorkerRole : RoleEntryPoint
     {
-        private CloudQueue imagesQueue;
-        private CloudBlobContainer imagesBlobContainer;
+        private CloudQueue soundQueue;
+        private CloudBlobContainer soundBlobContainer;
         private String fullInPath;
         private String fullOutPath;
         private String fileTitle;
@@ -86,16 +86,15 @@ namespace Thumbnails_WorkerRole
                 (RoleEnvironment.GetConfigurationSettingValue("StorageConnectionString"));
 
             Trace.TraceInformation("Exe located at: " + GetExePath());
-            Trace.TraceInformation("Creating photogallery blob container");
+            Trace.TraceInformation("Creating sounds blob container");
 
 
             var blobClient = storageAccount.CreateCloudBlobClient();
-            imagesBlobContainer = blobClient.GetContainerReference("photogallery");
+            soundBlobContainer = blobClient.GetContainerReference("sounds");
 
-            if (imagesBlobContainer.CreateIfNotExists())
+            if (soundBlobContainer.CreateIfNotExists())
             {
-                // Enable public access on the newly created "photogallery" container.
-                imagesBlobContainer.SetPermissions(
+                soundBlobContainer.SetPermissions(
                     new BlobContainerPermissions
                     {
                         PublicAccess = BlobContainerPublicAccessType.Blob
@@ -103,10 +102,10 @@ namespace Thumbnails_WorkerRole
             }
 
             
-            Trace.TraceInformation("Creating thumbnails queue");
+            Trace.TraceInformation("Creating sound queue");
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-            imagesQueue = queueClient.GetQueueReference("thumbnailmaker");
-            imagesQueue.CreateIfNotExists();
+            soundQueue = queueClient.GetQueueReference("soundqueue");
+            soundQueue.CreateIfNotExists();
 
             Trace.TraceInformation("Storage initialized");
             Trace.TraceInformation("localStorage path: " + GetLocalStoragePath());
@@ -115,18 +114,16 @@ namespace Thumbnails_WorkerRole
 
         public override void Run()
         {
-            Trace.TraceInformation("Thumbnails_WorkerRole is running");
+            Trace.TraceInformation("Shortener_WorkerRole is running");
 
             CloudQueueMessage msg = null;
 
             while (true)
             {
-                // 30s wait for demo - look in message queue - comment out as appropriate
-                //System.Threading.Thread.Sleep(30000);
 
                 try
                 {
-                    msg = this.imagesQueue.GetMessage();
+                    msg = this.soundQueue.GetMessage();
                     if (msg != null)
                     {
                         ProcessQueueMessage(msg);
@@ -140,10 +137,9 @@ namespace Thumbnails_WorkerRole
                 {
                     if (msg != null && msg.DequeueCount > 5)
                     {
-                        this.imagesQueue.DeleteMessage(msg);
+                        this.soundQueue.DeleteMessage(msg);
                         Trace.TraceError("Deleting poison queue item: '{0}'", msg.AsString);
                     }
-                    Trace.TraceError("Exception in Thumbnails_WorkerRole: '{0}'", e.Message);
                     System.Threading.Thread.Sleep(5000);
                 }
             }
@@ -156,26 +152,26 @@ namespace Thumbnails_WorkerRole
 
             Trace.TraceInformation(string.Format("*** WorkerRole: Dequeued '{0}'", path));
 
-            CloudBlockBlob inputBlob = imagesBlobContainer.GetBlockBlobReference(path);
+            CloudBlockBlob inputBlob = soundBlobContainer.GetBlockBlobReference(path);
 
             string folder = path.Split('\\')[0];
             System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"\" + folder);
-            imagesBlobContainer.GetBlockBlobReference(path).DownloadToFile(GetLocalStoragePath() + path, FileMode.Create);
+            soundBlobContainer.GetBlockBlobReference(path).DownloadToFile(GetLocalStoragePath() + path, FileMode.Create);
 
             fullInPath = GetLocalStoragePath() + path;
             Trace.TraceInformation("Full original file path: " + fullInPath);
 
 
 
-            string thumbnailName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "cropped.mp3";
+            string soundName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "cropped.mp3";
 
-            fullOutPath = GetLocalStoragePath() + @"out\" + thumbnailName;
-            CloudBlockBlob outputBlob = this.imagesBlobContainer.GetBlockBlobReference(@"out\" + thumbnailName);
+            fullOutPath = GetLocalStoragePath() + @"out\" + soundName;
+            CloudBlockBlob outputBlob = this.soundBlobContainer.GetBlockBlobReference(@"out\" + soundName);
             System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"out\");
 
             CropSound(10);
 
-            outputBlob.Properties.ContentType = "image/mpeg3";
+            outputBlob.Properties.ContentType = "audio/mpeg3";
 
             TagLib.File tagFile = TagLib.File.Create(fullOutPath);
 
@@ -195,7 +191,7 @@ namespace Thumbnails_WorkerRole
             outputBlob.SetMetadata();
 
             //remove message from queue
-            imagesQueue.DeleteMessage(msg);
+            soundQueue.DeleteMessage(msg);
 
             //remove initial blob
             inputBlob.Delete();
@@ -203,14 +199,14 @@ namespace Thumbnails_WorkerRole
 
         public override void OnStop()
         {
-            Trace.TraceInformation("Thumbnails_WorkerRole is stopping");
+            Trace.TraceInformation("Shortener_WorkerRole is stopping");
 
             this.cancellationTokenSource.Cancel();
             this.runCompleteEvent.WaitOne();
 
             base.OnStop();
 
-            Trace.TraceInformation("Thumbnails_WorkerRole has stopped");
+            Trace.TraceInformation("Shortener_WorkerRole has stopped");
         }
 
         private async Task RunAsync(CancellationToken cancellationToken)

@@ -6,7 +6,7 @@ using System;
 using System.Linq;
 using System.Net;
 
-namespace Thumbnails_WebRole
+namespace Shortener_WebRole
 {
     public partial class _Default : System.Web.UI.Page
     {
@@ -36,7 +36,7 @@ namespace Thumbnails_WebRole
                     var storageAccount = CloudStorageAccount.Parse(RoleEnvironment.GetConfigurationSettingValue("StorageConnectionString"));
 
                     // open this section to see connection 
-                    // to blob containers for storing images
+                    // to blob containers for storing sounds
 
                     // Instantiate the logical client object used for
                     // communicating with a blob container. 
@@ -47,7 +47,7 @@ namespace Thumbnails_WebRole
                     // blob container. If we knew that the blob container
                     // already existed, this would be all that we needed. 
 
-                    CloudBlobContainer container = blobClient.GetContainerReference("photogallery");
+                    CloudBlobContainer container = blobClient.GetContainerReference("sounds");
 
                     // Create the physical blob container underlying the logical
                     // CloudBlobContainer object, if it doesn't already exist. A 
@@ -81,7 +81,7 @@ namespace Thumbnails_WebRole
                     // sure that physical queue underlying this logical 
                     // object already existed, this would be all we needed.
 
-                    CloudQueue queue = queueStorage.GetQueueReference("thumbnailmaker");
+                    CloudQueue queue = queueStorage.GetQueueReference("soundqueue");
 
                     // Create the physical queue underlying the logical
                     // CloudQueue object, if it doesn't already exist. A 
@@ -104,16 +104,16 @@ namespace Thumbnails_WebRole
             }
         }
 
-        private CloudBlobContainer GetPhotoGalleryContainer()
+        private CloudBlobContainer GetSoundsContainer()
         {
             CreateOnceContainerAndQueue();
-            return blobClient.GetContainerReference("photogallery");
+            return blobClient.GetContainerReference("sounds");
         }
 
-        private CloudQueue GetThumbnailMakerQueue()
+        private CloudQueue GetSoundQueue()
         {
             CreateOnceContainerAndQueue();
-            return queueStorage.GetQueueReference("thumbnailmaker");
+            return queueStorage.GetQueueReference("soundqueue");
         }
 
         private string GetMimeType(string Filename)
@@ -161,7 +161,7 @@ namespace Thumbnails_WebRole
 
                 String path = @"in\" + name;
 
-                var blob = GetPhotoGalleryContainer().GetBlockBlobReference(path);
+                var blob = GetSoundsContainer().GetBlockBlobReference(path);
 
                 // The blob properties object (the label on the bucket)
                 // contains an entry for MIME type. Set that property.
@@ -182,17 +182,17 @@ namespace Thumbnails_WebRole
 
                     // Place a message in the queue to tell the worker
                     // role that a new photo blob exists, which will 
-                    // cause it to create a thumbnail blob of that photo
+                    // cause it to create a sound blob of that photo
                     // for easier display. 
 
                     // open this section to see the code
 
-                    GetThumbnailMakerQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(path)));
+                    GetSoundQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(path)));
 
                     System.Diagnostics.Trace.WriteLine(String.Format("*** WebRole: Enqueued '{0}'", path));
 
                     System.Threading.Thread.Sleep(3000);
-                    Response.Redirect("Default.aspx?uploaded=1");
+                    Response.Redirect("Default.aspx");
                 }
 
 
@@ -220,10 +220,10 @@ namespace Thumbnails_WebRole
             try
             { 
 
-                ThumbnailDisplayControl.DataSource = from o in GetPhotoGalleryContainer().GetDirectoryReference("out").ListBlobs()
+                SoundsDisplayControl.DataSource = from o in GetSoundsContainer().GetDirectoryReference("out").ListBlobs()
                                                      select new { Url = o.Uri, Name = GetTitle(o.Uri), Instance = GetInstanceIndex(o.Uri)};
                 
-                ThumbnailDisplayControl.DataBind();
+                SoundsDisplayControl.DataBind();
             }
             catch (Exception)
             {

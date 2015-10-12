@@ -1,1 +1,1 @@
-﻿<%@ Application Codebehind="Global.asax.cs" Inherits="Thumbnails_WebRole.Global" Language="C#" %>
+﻿<%@ Application Codebehind="Global.asax.cs" Inherits="Shortener_WebRole.Global" Language="C#" %>

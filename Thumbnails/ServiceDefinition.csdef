@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ServiceDefinition name="Thumbnails" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition" schemaVersion="2015-04.2.6">
-  <WebRole name="Thumbnails_WebRole" vmsize="Small">
+  <WebRole name="Shortener_WebRole" vmsize="Small">
     <Sites>
       <Site name="Web">
         <Bindings>
@@ -16,7 +16,7 @@
       <InputEndpoint name="Endpoint1" protocol="http" port="80" />
     </Endpoints>
   </WebRole>
-  <WorkerRole name="Thumbnails_WorkerRole" vmsize="Small">
+  <WorkerRole name="Shortener_WorkerRole" vmsize="Small">
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
       <Setting name="StorageConnectionString" />

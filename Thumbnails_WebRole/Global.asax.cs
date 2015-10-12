@@ -5,7 +5,7 @@ using System.Web;
 using System.Web.Security;
 using System.Web.SessionState;
 
-namespace Thumbnails_WebRole
+namespace Shortener_WebRole
 {
     public class Global : System.Web.HttpApplication
     {

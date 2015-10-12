@@ -1,4 +1,4 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="Thumbnails_WebRole._Default" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="Shortener_WebRole._Default" %>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -21,7 +21,7 @@
         <div>
             <asp:UpdatePanel ID="up1" runat="server" style="margin-top:10px">
                 <ContentTemplate>
-                    <asp:ListView ID="ThumbnailDisplayControl" runat="server">
+                    <asp:ListView ID="SoundsDisplayControl" runat="server">
                         <LayoutTemplate>
                             <asp:Image ID="itemPlaceholder" runat="server" />
                         </LayoutTemplate>

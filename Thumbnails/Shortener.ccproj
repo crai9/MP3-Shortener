@@ -11,7 +11,7 @@
     <RootNamespace>Thumbnails</RootNamespace>
     <AssemblyName>Thumbnails</AssemblyName>
     <StartDevelopmentStorage>True</StartDevelopmentStorage>
-    <Name>Thumbnails</Name>
+    <Name>Shortener</Name>
     <UseWebProjectPorts>False</UseWebProjectPorts>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -38,31 +38,29 @@
     <ServiceConfiguration Include="ServiceConfiguration.Cloud.cscfg" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Thumbnails_WebRole\Thumbnails_WebRole.csproj">
-      <Name>Thumbnails_WebRole</Name>
+    <ProjectReference Include="..\Thumbnails_WebRole\Shortener_WebRole.csproj">
+      <Name>Shortener_WebRole</Name>
       <Project>{fceef1eb-84d0-4caa-a155-e2fda1e62322}</Project>
       <Private>True</Private>
       <RoleType>Web</RoleType>
-      <RoleName>Thumbnails_WebRole</RoleName>
-      <UpdateDiagnosticsConnectionStringOnPublish>True</UpdateDiagnosticsConnectionStringOnPublish>
+      <RoleName>Shortener_WebRole</RoleName>
     </ProjectReference>
-    <ProjectReference Include="..\Thumbnails_WorkerRole\Thumbnails_WorkerRole.csproj">
-      <Name>Thumbnails_WorkerRole</Name>
+    <ProjectReference Include="..\Thumbnails_WorkerRole\Shortener_WorkerRole.csproj">
+      <Name>Shortener_WorkerRole</Name>
       <Project>{062ce8ce-c64a-4ce8-a4b7-88cd5ba755ac}</Project>
       <Private>True</Private>
       <RoleType>Worker</RoleType>
-      <RoleName>Thumbnails_WorkerRole</RoleName>
-      <UpdateDiagnosticsConnectionStringOnPublish>True</UpdateDiagnosticsConnectionStringOnPublish>
+      <RoleName>Shortener_WorkerRole</RoleName>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Profiles" />
-    <Folder Include="Thumbnails_WebRoleContent\" />
-    <Folder Include="Thumbnails_WorkerRoleContent\" />
+    <Folder Include="Shortener_WebRoleContent" />
+    <Folder Include="Shortener_WorkerRoleContent" />
   </ItemGroup>
   <ItemGroup>
-    <DiagnosticsConfiguration Include="Thumbnails_WebRoleContent\diagnostics.wadcfgx" />
-    <DiagnosticsConfiguration Include="Thumbnails_WorkerRoleContent\diagnostics.wadcfgx" />
+    <DiagnosticsConfiguration Include="Shortener_WebRoleContent\diagnostics.wadcfgx" />
+    <DiagnosticsConfiguration Include="Shortener_WorkerRoleContent\diagnostics.wadcfgx" />
   </ItemGroup>
   <ItemGroup>
     <PublishProfile Include="Profiles\craigthumbnailsProduction.azurePubxml" />

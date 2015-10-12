@@ -28,73 +28,29 @@ namespace Shortener_WebRole
                 }
 
                 try
-                {
-                    // Obtain connection to this application's
-                    // Azure Storage Service account. It will be
-                    // used to access both blobs and queues. 
+                { 
 
                     var storageAccount = CloudStorageAccount.Parse(RoleEnvironment.GetConfigurationSettingValue("StorageConnectionString"));
 
-                    // open this section to see connection 
-                    // to blob containers for storing sounds
-
-                    // Instantiate the logical client object used for
-                    // communicating with a blob container. 
-
                     blobClient = storageAccount.CreateCloudBlobClient();
-
-                    // Associate that logical client object with a physical
-                    // blob container. If we knew that the blob container
-                    // already existed, this would be all that we needed. 
 
                     CloudBlobContainer container = blobClient.GetContainerReference("sounds");
 
-                    // Create the physical blob container underlying the logical
-                    // CloudBlobContainer object, if it doesn't already exist. A 
-                    // production app will frequently not do this, instead
-                    // requiring the initial administrative provisioning 
-                    // process to set up blob containers and other storage structures. 
-
                     container.CreateIfNotExists();
-
-                    // Set the permission on the blob container
-                    // to allow anonymous access
 
                     var permissions = container.GetPermissions();
                     permissions.PublicAccess = BlobContainerPublicAccessType.Container;
                     container.SetPermissions(permissions);
 
-                    // open this section to see connection 
-                    // to queues for passing messages to worker role
-
-                    // Create the queue for communicating with
-                    // the Worker role, if the queue doesn't currently
-                    // exist
-
-                    // Instantiate a client object for communicating
-                    // with a message queue
-
                     queueStorage = storageAccount.CreateCloudQueueClient();
 
-                    // Connect the client object to a specific CloudQueue
-                    // logical object in the storage service. If we were
-                    // sure that physical queue underlying this logical 
-                    // object already existed, this would be all we needed.
-
                     CloudQueue queue = queueStorage.GetQueueReference("soundqueue");
-
-                    // Create the physical queue underlying the logical
-                    // CloudQueue object, if it doesn't already exist. A 
-                    // production app will frequently not do this, instead
-                    // requiring the initial administrative provisioning 
-                    // process to set up queues and other storage structures. 
 
                     queue.CreateIfNotExists();
                 }
                 catch (WebException)
                 {
-                    // display a nice error message if the local development storage tool is not running or if there is 
-                    // an error in the account configuration that causes this exception
+
                     throw new WebException("The Windows Azure storage services cannot be contacted " +
                          "via the current account configuration or the local development storage emulator is not running. ");
                 }
@@ -106,12 +62,14 @@ namespace Shortener_WebRole
 
         private CloudBlobContainer GetSoundsContainer()
         {
+            //returns the container where the sound files are stored
             CreateOnceContainerAndQueue();
             return blobClient.GetContainerReference("sounds");
         }
 
         private CloudQueue GetSoundQueue()
         {
+            //returns the CloudQueue where sound paths are stored temp
             CreateOnceContainerAndQueue();
             return queueStorage.GetQueueReference("soundqueue");
         }
@@ -137,61 +95,46 @@ namespace Shortener_WebRole
             return "audio/mpeg3";
         }
 
-        // User clicked the "Submit" button
+        //OnClick of submit button
         protected void submitButton_Click(object sender, EventArgs e)
         {
             if (upload.HasFile)
             {
-                // Get the file name specified by the user. 
 
                 var ext = System.IO.Path.GetExtension(upload.FileName);
 
-                // Add more information to it so as to make it unique
-                // within all the files in that blob container
-
+                //rename file so that it is unique
                 var name = string.Format("{0:10}_{1}{2}", DateTime.Now.Ticks, Guid.NewGuid(), ext);
 
-                // Upload photo to the cloud. Store it in a new 
-                // blob in the specified blob container. 
-
-                // open this section to see the code. 
-
-                // Go to the container, instantiate a new blob
-                // with the descriptive name
-
+                //set initial folder name to 'in'
                 String path = @"in\" + name;
 
+                //get the blob as a variable
                 var blob = GetSoundsContainer().GetBlockBlobReference(path);
 
-                // The blob properties object (the label on the bucket)
-                // contains an entry for MIME type. Set that property.
-
-                blob.Properties.ContentType = GetMimeType(upload.FileName);
+                //get file's mime type
+                blob.Properties.ContentType = GetMimeType(upload.FileName); //doesn't work
                 var fileArray = upload.FileName.Split('.');
                 var extenstion = fileArray[fileArray.Length -1];
 
+                //see if the file is valid
                 if (extenstion != "mp3")
                 {
                     Response.Write("You can only upload mp3 files");
                 } else
                 {
-                    // Actually upload the data to the
-                    // newly instantiated blob
-
+                    //upload the blob
                     blob.UploadFromStream(upload.FileContent);
 
-                    // Place a message in the queue to tell the worker
-                    // role that a new photo blob exists, which will 
-                    // cause it to create a sound blob of that photo
-                    // for easier display. 
-
-                    // open this section to see the code
-
+                    //notify the worker role that there is a new blob to be processed
                     GetSoundQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(path)));
 
                     System.Diagnostics.Trace.WriteLine(String.Format("*** WebRole: Enqueued '{0}'", path));
 
+                    //wait for file to be processed by worker role
                     System.Threading.Thread.Sleep(3000);
+
+                    //redirect to home page 
                     Response.Redirect("Default.aspx");
                 }
 
@@ -201,6 +144,7 @@ namespace Shortener_WebRole
 
         protected String GetTitle(Uri blobURI)
         {
+            //returns the title of the file from the Blob metadata
             CloudBlockBlob blob = new CloudBlockBlob(blobURI);
             blob.FetchAttributes();
             return blob.Metadata["Title"];
@@ -208,21 +152,21 @@ namespace Shortener_WebRole
 
         protected String GetInstanceIndex(Uri blobURI)
         {
+            //returns the Worker role's index from the Blob metadata
             CloudBlockBlob blob = new CloudBlockBlob(blobURI);
             blob.FetchAttributes();
             return blob.Metadata["InstanceNo"];
         }
 
-
+        //On page load
         protected void Page_PreRender(object sender, EventArgs e)
         {
-
             try
             { 
-
+                //Query for the URL, Title, and Instance of each blob in the container
                 SoundsDisplayControl.DataSource = from o in GetSoundsContainer().GetDirectoryReference("out").ListBlobs()
                                                      select new { Url = o.Uri, Name = GetTitle(o.Uri), Instance = GetInstanceIndex(o.Uri)};
-                
+                //Bind data to DisplayControll
                 SoundsDisplayControl.DataBind();
             }
             catch (Exception)

@@ -27,22 +27,26 @@ namespace Shortener_WorkerRole
 
         public static String GetExePath()
         {
+           //returns the full path of the executeable file in the worker role
            return Path.Combine(Environment.GetEnvironmentVariable("RoleRoot") + @"\", @"approot\ffmpeg.exe");
         }
 
         public static String GetExeArgs(String inPath, String outPath, int seconds = 10)
         {
+            //returns command line arguments
             return "-t "+ seconds + " -i " + inPath + " -acodec copy " + outPath;
         }
 
         public static String GetLocalStoragePath()
         {
+            //returns the full path of the local storage
             LocalResource l = RoleEnvironment.GetLocalResource("LocalSoundStore");
             return string.Format(l.RootPath);
         }
 
         public static String GetInstanceIndex()
         {
+            //returns the instance's index
             string instanceId = RoleEnvironment.CurrentRoleInstance.Id;
             return instanceId.Substring(instanceId.LastIndexOf("_") + 1);
         }
@@ -54,12 +58,15 @@ namespace Shortener_WorkerRole
             try
             {
                 Process proc = new Process();
+                //set exe's location
                 proc.StartInfo.FileName = GetExePath();
+                //set command line args
                 proc.StartInfo.Arguments = GetExeArgs(fullInPath, fullOutPath, seconds);
                 proc.StartInfo.CreateNoWindow = true;
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.ErrorDialog = false;
 
+                //execute code
                 proc.Start();
                 proc.WaitForExit();
                 success = true;
@@ -123,6 +130,7 @@ namespace Shortener_WorkerRole
 
                 try
                 {
+                    //poll for new message
                     msg = this.soundQueue.GetMessage();
                     if (msg != null)
                     {
@@ -135,6 +143,7 @@ namespace Shortener_WorkerRole
                 }
                 catch (StorageException e)
                 {
+                    //remove message from queue if it fails more than five times
                     if (msg != null && msg.DequeueCount > 5)
                     {
                         this.soundQueue.DeleteMessage(msg);
@@ -147,32 +156,41 @@ namespace Shortener_WorkerRole
 
         private void ProcessQueueMessage(CloudQueueMessage msg)
         {
-
+            //get file's path from message queue
             string path = msg.AsString;
 
             Trace.TraceInformation(string.Format("*** WorkerRole: Dequeued '{0}'", path));
 
+            //get input blob
             CloudBlockBlob inputBlob = soundBlobContainer.GetBlockBlobReference(path);
 
+            //make folder for blob to be downloaded into
             string folder = path.Split('\\')[0];
             System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"\" + folder);
+
+            //download file to local storage
             soundBlobContainer.GetBlockBlobReference(path).DownloadToFile(GetLocalStoragePath() + path, FileMode.Create);
 
+            //
             fullInPath = GetLocalStoragePath() + path;
             Trace.TraceInformation("Full original file path: " + fullInPath);
 
 
-
+            //new file name
             string soundName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "cropped.mp3";
 
+            //get and make directory for file output
             fullOutPath = GetLocalStoragePath() + @"out\" + soundName;
             CloudBlockBlob outputBlob = this.soundBlobContainer.GetBlockBlobReference(@"out\" + soundName);
             System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"out\");
 
+            //shorten the sound to 10s
             CropSound(10);
 
+            //set content type to mp3
             outputBlob.Properties.ContentType = "audio/mpeg3";
 
+            //set id3 tags
             TagLib.File tagFile = TagLib.File.Create(fullOutPath);
 
             tagFile.Tag.Comment = "Shortened on WorkerRole Instance " + GetInstanceIndex();
@@ -180,11 +198,14 @@ namespace Shortener_WorkerRole
             fileTitle = tagFile.Tag.Title ?? "File has no original Title Tag"; //Check that title tag isn't null
             tagFile.Save();
 
+
+            //upload blob to container
             using (var fileStream = File.OpenRead(fullOutPath))
             {
                 outputBlob.UploadFromStream(fileStream);
             }
 
+            //Add metadata to blob
             outputBlob.FetchAttributes();
             outputBlob.Metadata["Title"] = fileTitle;
             outputBlob.Metadata["InstanceNo"] = GetInstanceIndex();

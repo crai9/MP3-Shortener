@@ -13,16 +13,16 @@ namespace Shortener_WebRole
         private static CloudBlobClient blobClient;
         private static CloudQueueClient queueStorage;
 
-        private static bool s_createdContainerAndQueue = false;
-        private static object s_lock = new Object();
+        private static bool created = false;
+        private static object @lock = new Object();
 
-        private void CreateOnceContainerAndQueue()
+        private void MakeContainerAndQueue()
         {
-            if (s_createdContainerAndQueue)
+            if (created)
                 return;
-            lock (s_lock)
+            lock (@lock)
             {
-                if (s_createdContainerAndQueue)
+                if (created)
                 {
                     return;
                 }
@@ -55,7 +55,7 @@ namespace Shortener_WebRole
                          "via the current account configuration or the local development storage emulator is not running. ");
                 }
 
-                s_createdContainerAndQueue = true;
+                created = true;
                 System.Diagnostics.Trace.WriteLine(String.Format("*** WebRole: Good to go..."));
             }
         }
@@ -63,14 +63,14 @@ namespace Shortener_WebRole
         private CloudBlobContainer GetSoundsContainer()
         {
             //returns the container where the sound files are stored
-            CreateOnceContainerAndQueue();
+            MakeContainerAndQueue();
             return blobClient.GetContainerReference("sounds");
         }
 
         private CloudQueue GetSoundQueue()
         {
             //returns the CloudQueue where sound paths are stored temp
-            CreateOnceContainerAndQueue();
+            MakeContainerAndQueue();
             return queueStorage.GetQueueReference("soundqueue");
         }
 
@@ -118,7 +118,7 @@ namespace Shortener_WebRole
                 var extenstion = fileArray[fileArray.Length -1];
 
                 //see if the file is valid
-                if (extenstion != "mp3")
+                if (extenstion != "mp3" & ext != ".mp3")
                 {
                     Response.Write("You can only upload mp3 files");
                 } else
@@ -128,14 +128,13 @@ namespace Shortener_WebRole
 
                     //notify the worker role that there is a new blob to be processed
                     GetSoundQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(path)));
-
                     System.Diagnostics.Trace.WriteLine(String.Format("*** WebRole: Enqueued '{0}'", path));
 
                     //wait for file to be processed by worker role
                     System.Threading.Thread.Sleep(3000);
 
                     //redirect to home page 
-                    Response.Redirect("Default.aspx");
+                    Response.Redirect("/");
                 }
 
 

@@ -7,9 +7,6 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System.IO;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using System;
 
 namespace Shortener_WorkerRole
@@ -158,7 +155,7 @@ namespace Shortener_WorkerRole
         {
             //get file's path from message queue
             string path = msg.AsString;
-
+            
             Trace.TraceInformation(string.Format("*** WorkerRole: Dequeued '{0}'", path));
 
             //get input blob
@@ -195,11 +192,12 @@ namespace Shortener_WorkerRole
 
             tagFile.Tag.Comment = "Shortened on WorkerRole Instance " + GetInstanceIndex();
             tagFile.Tag.Conductor = "Craig";
-            fileTitle = tagFile.Tag.Title ?? "File has no original Title Tag"; //Check that title tag isn't null
+            //Check that title tag isn't null
+            fileTitle = tagFile.Tag.Title ?? "File has no original Title Tag";
             tagFile.Save();
 
 
-            //upload blob to container
+            //upload blob  from local storage to container
             using (var fileStream = File.OpenRead(fullOutPath))
             {
                 outputBlob.UploadFromStream(fileStream);
@@ -216,6 +214,10 @@ namespace Shortener_WorkerRole
 
             //remove initial blob
             inputBlob.Delete();
+
+            //remove files from local storage
+            File.Delete(fullInPath);
+            File.Delete(fullOutPath);
         }
 
         public override void OnStop()

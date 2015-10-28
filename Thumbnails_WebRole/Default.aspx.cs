@@ -56,7 +56,7 @@ namespace Shortener_WebRole
                 }
 
                 created = true;
-                System.Diagnostics.Trace.WriteLine(String.Format("*** WebRole: Good to go..."));
+                Log(String.Format("*** WebRole: Ready"));
             }
         }
 
@@ -157,6 +157,11 @@ namespace Shortener_WebRole
             return blob.Metadata["InstanceNo"];
         }
 
+        protected void Log(String msg)
+        {
+            System.Diagnostics.Trace.WriteLine(msg);
+        }
+
         //On page load
         protected void Page_PreRender(object sender, EventArgs e)
         {
@@ -165,7 +170,7 @@ namespace Shortener_WebRole
                 //Query for the URL, Title, and Instance of each blob in the container
                 SoundsDisplayControl.DataSource = from o in GetSoundsContainer().GetDirectoryReference("out").ListBlobs()
                                                      select new { Url = o.Uri, Name = GetTitle(o.Uri), Instance = GetInstanceIndex(o.Uri)};
-                //Bind data to DisplayControll
+                //Bind data to DisplayControl
                 SoundsDisplayControl.DataBind();
             }
             catch (Exception)

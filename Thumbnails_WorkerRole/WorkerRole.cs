@@ -18,6 +18,7 @@ namespace Shortener_WorkerRole
         private String fullInPath;
         private String fullOutPath;
         private String fileTitle;
+        Stopwatch stopWatch = new Stopwatch();
 
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
@@ -68,7 +69,7 @@ namespace Shortener_WorkerRole
                 proc.WaitForExit();
                 success = true;
 
-                Trace.TraceInformation("It worked???");
+                Log("It worked!");
 
             } catch(Exception e)
             {
@@ -89,8 +90,8 @@ namespace Shortener_WorkerRole
             var storageAccount = CloudStorageAccount.Parse
                 (RoleEnvironment.GetConfigurationSettingValue("StorageConnectionString"));
 
-            Trace.TraceInformation("Exe located at: " + GetExePath());
-            Trace.TraceInformation("Creating sounds blob container");
+            //Log("Exe located at: " + GetExePath());
+            Log("Creating sounds blob container");
 
 
             var blobClient = storageAccount.CreateCloudBlobClient();
@@ -106,19 +107,19 @@ namespace Shortener_WorkerRole
             }
 
             
-            Trace.TraceInformation("Creating sound queue");
+            Log("Creating sound queue");
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
             soundQueue = queueClient.GetQueueReference("soundqueue");
             soundQueue.CreateIfNotExists();
 
-            Trace.TraceInformation("Storage initialized");
-            Trace.TraceInformation("localStorage path: " + GetLocalStoragePath());
+            Log("Storage initialized");
+            //Log("localStorage path: " + GetLocalStoragePath());
             return base.OnStart();
         }
 
         public override void Run()
         {
-            Trace.TraceInformation("Shortener_WorkerRole is running");
+            Log("Shortener_WorkerRole is running");
 
             CloudQueueMessage msg = null;
 
@@ -155,8 +156,6 @@ namespace Shortener_WorkerRole
         {
             //get file's path from message queue
             string path = msg.AsString;
-            
-            Trace.TraceInformation(string.Format("*** WorkerRole: Dequeued '{0}'", path));
 
             //get input blob
             CloudBlockBlob inputBlob = soundBlobContainer.GetBlockBlobReference(path);
@@ -166,15 +165,16 @@ namespace Shortener_WorkerRole
             System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"\" + folder);
 
             //download file to local storage
+            Log("Downloading blob to local storage...");
             soundBlobContainer.GetBlockBlobReference(path).DownloadToFile(GetLocalStoragePath() + path, FileMode.Create);
+            Log("Done downloading");
 
-            //
+            //get file's current location
             fullInPath = GetLocalStoragePath() + path;
-            Trace.TraceInformation("Full original file path: " + fullInPath);
-
 
             //new file name
             string soundName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "cropped.mp3";
+            Log("New file name: " + soundName);
 
             //get and make directory for file output
             fullOutPath = GetLocalStoragePath() + @"out\" + soundName;
@@ -182,13 +182,22 @@ namespace Shortener_WorkerRole
             System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"out\");
 
             //shorten the sound to 10s
+            Log("Shortening MP3 to 10s.");
+            stopWatch.Start();
+
             CropSound(10);
+
+            stopWatch.Stop();
+            Log("Took " + stopWatch.ElapsedMilliseconds + " ms to shorten mp3.");
+            stopWatch.Reset();
 
             //set content type to mp3
             outputBlob.Properties.ContentType = "audio/mpeg3";
 
             //set id3 tags
+            Log("Setting ID3 tags.");
             TagLib.File tagFile = TagLib.File.Create(fullOutPath);
+
 
             tagFile.Tag.Comment = "Shortened on WorkerRole Instance " + GetInstanceIndex();
             tagFile.Tag.Conductor = "Craig";
@@ -196,40 +205,74 @@ namespace Shortener_WorkerRole
             fileTitle = tagFile.Tag.Title ?? "File has no original Title Tag";
             tagFile.Save();
 
+            LogMP3Metadata(tagFile);
+
 
             //upload blob  from local storage to container
+            Log("Returning mp3 to the blob container.");
             using (var fileStream = File.OpenRead(fullOutPath))
             {
                 outputBlob.UploadFromStream(fileStream);
             }
 
             //Add metadata to blob
+            Log("Adding metadata to the blob.");
             outputBlob.FetchAttributes();
             outputBlob.Metadata["Title"] = fileTitle;
             outputBlob.Metadata["InstanceNo"] = GetInstanceIndex();
             outputBlob.SetMetadata();
 
+            //Print blob metadata to console
+            Log("Blob's metadata: ");
+            foreach (var item in outputBlob.Metadata)
+            {
+                Log("   " + item.Key + ": " + item.Value);
+            }
+
             //remove message from queue
+            Log("Removing message from the queue.");
             soundQueue.DeleteMessage(msg);
 
             //remove initial blob
+            Log("Deleting the input blob.");
             inputBlob.Delete();
 
             //remove files from local storage
+            Log("Deleting files from local storage.");
             File.Delete(fullInPath);
             File.Delete(fullOutPath);
         }
 
         public override void OnStop()
         {
-            Trace.TraceInformation("Shortener_WorkerRole is stopping");
+            Log("Shortener_WorkerRole is stopping");
 
             this.cancellationTokenSource.Cancel();
             this.runCompleteEvent.WaitOne();
 
             base.OnStop();
 
-            Trace.TraceInformation("Shortener_WorkerRole has stopped");
+            Log("Shortener_WorkerRole has stopped");
+        }
+
+        protected void LogMP3Metadata(TagLib.File file)
+        {
+            Log("File's metadata:");
+
+            Log("  Title: " + file.Tag.Title);
+            var artist = (file.Tag.AlbumArtists.Length > 0) ? file.Tag.AlbumArtists[0] : "";
+            Log("  Artist: " + artist);
+            Log("  Album: " + file.Tag.Album);
+            Log("  Year: " + file.Tag.Year);
+            var genre = (file.Tag.Genres.Length > 0) ? file.Tag.Genres[0] : "";
+            Log("  Genre: " + genre);
+            Log("  Comment: " + file.Tag.Comment);
+
+        }
+
+        protected void Log(String msg)
+        {
+            Trace.TraceInformation(msg);
         }
 
         private async Task RunAsync(CancellationToken cancellationToken)
@@ -237,7 +280,7 @@ namespace Shortener_WorkerRole
             // TODO: Replace the following with your own logic.
             while (!cancellationToken.IsCancellationRequested)
             {
-                Trace.TraceInformation("Working");
+                Log("Working");
                 await Task.Delay(1000);
             }
         }

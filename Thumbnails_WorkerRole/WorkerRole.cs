@@ -141,6 +141,7 @@ namespace Shortener_WorkerRole
                 }
                 catch (StorageException e)
                 {
+                    Trace.TraceError("Message creating a Storage Exception: '{0}'", e.Message);
                     //remove message from queue if it fails more than five times
                     if (msg != null && msg.DequeueCount > 5)
                     {

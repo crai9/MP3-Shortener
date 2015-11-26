@@ -25,4 +25,19 @@
       <LocalStorage name="LocalSoundStore" cleanOnRoleRecycle="true" sizeInMB="2048" />
     </LocalResources>
   </WorkerRole>
+  <WebRole name="Shortener_ApiWebRole" vmsize="Small">
+    <Sites>
+      <Site name="Web">
+        <Bindings>
+          <Binding name="Endpoint1" endpointName="Endpoint1" />
+        </Bindings>
+      </Site>
+    </Sites>
+    <ConfigurationSettings>
+      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
+    </ConfigurationSettings>
+    <Endpoints>
+      <InputEndpoint name="Endpoint1" protocol="http" port="8080" />
+    </Endpoints>
+  </WebRole>
 </ServiceDefinition>

@@ -38,6 +38,14 @@
     <ServiceConfiguration Include="ServiceConfiguration.Cloud.cscfg" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Shortener_ApiWebRole\Shortener_ApiWebRole.csproj">
+      <Name>Shortener_ApiWebRole</Name>
+      <Project>{bceac12a-39ba-470d-a7ff-85fe2f751c92}</Project>
+      <Private>True</Private>
+      <RoleType>Web</RoleType>
+      <RoleName>Shortener_ApiWebRole</RoleName>
+      <UpdateDiagnosticsConnectionStringOnPublish>True</UpdateDiagnosticsConnectionStringOnPublish>
+    </ProjectReference>
     <ProjectReference Include="..\Thumbnails_WebRole\Shortener_WebRole.csproj">
       <Name>Shortener_WebRole</Name>
       <Project>{fceef1eb-84d0-4caa-a155-e2fda1e62322}</Project>
@@ -55,10 +63,12 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Profiles" />
+    <Folder Include="Shortener_ApiWebRoleContent\" />
     <Folder Include="Shortener_WebRoleContent" />
     <Folder Include="Shortener_WorkerRoleContent" />
   </ItemGroup>
   <ItemGroup>
+    <DiagnosticsConfiguration Include="Shortener_ApiWebRoleContent\diagnostics.wadcfgx" />
     <DiagnosticsConfiguration Include="Shortener_WebRoleContent\diagnostics.wadcfgx" />
     <DiagnosticsConfiguration Include="Shortener_WorkerRoleContent\diagnostics.wadcfgx" />
   </ItemGroup>

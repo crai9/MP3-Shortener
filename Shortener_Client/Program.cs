@@ -1,6 +1,7 @@
 ﻿using ShortenerLibrary.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -138,7 +139,7 @@ namespace Shortener_Client
                         valid = int.TryParse(Console.ReadLine(), out input);
                         if (valid)
                         {
-                            PutBlob(input);
+                           await PutBlob(input);
                         }
                         else
                         {
@@ -269,14 +270,25 @@ namespace Shortener_Client
             await ReturnToMenu();
         }
 
-        private static void PutBlob(int id)
+        private static async Task PutBlob(int id)
         {
             //Put blob to container
+            string path = Path.Combine(Environment.GetEnvironmentVariable("RoleRoot") + @"\", @"approot\Upload\Largo.mp3");
+
+            Console.WriteLine("Path to mp3 is: " + path);
+            Console.WriteLine("Current dir = " + Environment.CurrentDirectory);
+            Console.WriteLine("Option 3 = " + Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName);
+
+            //TODO: Code this
+
+            await ReturnToMenu();
         }
 
         private static void GetBlob(int id)
         {
             //Get blob from container
+
+            //TODO: Code this
         }
 
         private static async Task ReturnToMenu()

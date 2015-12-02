@@ -8,6 +8,7 @@ using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System.IO;
 using System;
+using ShortenerLibrary.Models;
 
 namespace Shortener_WorkerRole
 {
@@ -19,6 +20,7 @@ namespace Shortener_WorkerRole
         private String fullOutPath;
         private String fileTitle;
         Stopwatch stopWatch = new Stopwatch();
+        
 
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
@@ -132,7 +134,21 @@ namespace Shortener_WorkerRole
                     msg = this.soundQueue.GetMessage();
                     if (msg != null)
                     {
-                        ProcessQueueMessage(msg);
+                        //Check here for file name or Sample ID.
+
+                        int id;
+                        if (Int32.TryParse(msg.AsString, out id))
+                        {
+                            //Is a Sample ID
+                            ProcessQueueMessageFromApi(msg, id);
+                        } else
+                        {
+                            //Is a file name
+                            ProcessQueueMessage(msg);
+                        }
+
+
+                        
                     }
                     else
                     {
@@ -151,6 +167,112 @@ namespace Shortener_WorkerRole
                     System.Threading.Thread.Sleep(5000);
                 }
             }
+        }
+
+        private void ProcessQueueMessageFromApi(CloudQueueMessage msg, int id)
+        {
+
+            SamplesContext db = new SamplesContext();
+
+            var sample = db.Samples.Find(id);
+
+            Log("ID from queue is " + id);
+            Log("CloudQueueMessage is " + msg.AsString);
+
+            Log("File name from DB for ID " + id + " is: " + sample.Title);
+
+            string path = sample.MP3Blob;
+
+            //get input blob
+            CloudBlockBlob inputBlob = soundBlobContainer.GetBlockBlobReference(path);
+
+            //make folder for blob to be downloaded into
+            string folder = path.Split('\\')[0];
+            System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"\" + folder);
+
+            //download file to local storage
+            Log("Downloading blob to local storage...");
+            soundBlobContainer.GetBlockBlobReference(path).DownloadToFile(GetLocalStoragePath() + path, FileMode.Create);
+            Log("Done downloading");
+
+            //get file's current location
+            fullInPath = GetLocalStoragePath() + path;
+
+            //new file name
+            string soundName = Path.GetFileNameWithoutExtension(inputBlob.Name) + "cropped.mp3";
+            Log("New file name: " + soundName);
+
+            //get and make directory for file output
+            fullOutPath = GetLocalStoragePath() + @"out\" + soundName;
+            CloudBlockBlob outputBlob = this.soundBlobContainer.GetBlockBlobReference(@"out\" + soundName);
+            System.IO.Directory.CreateDirectory(GetLocalStoragePath() + @"out\");
+
+            //shorten the sound to 10s
+            Log("Shortening MP3 to 10s.");
+            stopWatch.Start();
+
+            CropSound(10);
+
+            stopWatch.Stop();
+            Log("Took " + stopWatch.ElapsedMilliseconds + " ms to shorten mp3.");
+            stopWatch.Reset();
+
+            //set content type to mp3
+            outputBlob.Properties.ContentType = "audio/mpeg3";
+
+            //set id3 tags
+            Log("Setting ID3 tags.");
+            TagLib.File tagFile = TagLib.File.Create(fullOutPath);
+
+
+            tagFile.Tag.Comment = "Shortened on WorkerRole Instance " + GetInstanceIndex();
+            tagFile.Tag.Conductor = "Craig";
+            //Check that title tag isn't null
+            fileTitle = tagFile.Tag.Title ?? "File has no original Title Tag";
+            tagFile.Save();
+
+            LogMP3Metadata(tagFile);
+
+
+            //upload blob  from local storage to container
+            Log("Returning mp3 to the blob container.");
+            using (var fileStream = File.OpenRead(fullOutPath))
+            {
+                outputBlob.UploadFromStream(fileStream);
+            }
+
+            //Add metadata to blob
+            Log("Adding metadata to the blob.");
+            outputBlob.FetchAttributes();
+            outputBlob.Metadata["Title"] = fileTitle;
+            outputBlob.Metadata["InstanceNo"] = GetInstanceIndex();
+            outputBlob.SetMetadata();
+
+
+            sample.SampleMP3Blob = @"out\" + soundName;
+            sample.DateOfSampleCreation = DateTime.Now;
+
+            db.SaveChanges();
+
+            //Print blob metadata to console
+            Log("Blob's metadata: ");
+            foreach (var item in outputBlob.Metadata)
+            {
+                Log("   " + item.Key + ": " + item.Value);
+            }
+
+            //remove message from queue
+            Log("Removing message from the queue.");
+            soundQueue.DeleteMessage(msg);
+
+            //remove initial blob
+            Log("Deleting the input blob.");
+            inputBlob.Delete();
+
+            //remove files from local storage
+            Log("Deleting files from local storage.");
+            File.Delete(fullInPath);
+            File.Delete(fullOutPath);
         }
 
         private void ProcessQueueMessage(CloudQueueMessage msg)

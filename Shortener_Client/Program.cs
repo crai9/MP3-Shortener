@@ -18,7 +18,7 @@ namespace Shortener_Client
         {
 
             Init().Wait();
-            
+
         }
 
         static async Task Init()
@@ -37,9 +37,9 @@ namespace Shortener_Client
             Console.WriteLine("2.  GET specific sample data");
             Console.WriteLine("3.  POST new sample");
             Console.WriteLine("4.  DELETE a sample");
-            Console.WriteLine("5.  PUT data for existing sample");
-            Console.WriteLine("6.  PUT blob for existing sample");
-            Console.WriteLine("7.  GET blob for existing sample");
+            Console.WriteLine("5.  PUT information for existing sample");
+            Console.WriteLine("6.  PUT blob data for existing sample");
+            Console.WriteLine("7.  GET blob data for existing sample");
 
             Console.WriteLine("0.  Exit the application.");
             Console.WriteLine();
@@ -80,11 +80,12 @@ namespace Shortener_Client
                         if (valid)
                         {
                             await GetOne(input);
-                        } else
+                        }
+                        else
                         {
                             await ShowMenu();
                         }
-                        
+
 
                         break;
 
@@ -104,7 +105,7 @@ namespace Shortener_Client
                         valid = int.TryParse(Console.ReadLine(), out input);
                         if (valid)
                         {
-                           await Delete(input);
+                            await Delete(input);
                         }
                         else
                         {
@@ -121,7 +122,7 @@ namespace Shortener_Client
                         valid = int.TryParse(Console.ReadLine(), out input);
                         if (valid)
                         {
-                           await Put(input);
+                            await Put(input);
                         }
                         else
                         {
@@ -139,7 +140,7 @@ namespace Shortener_Client
                         valid = int.TryParse(Console.ReadLine(), out input);
                         if (valid)
                         {
-                           await PutBlob(input);
+                            await PutBlob(input);
                         }
                         else
                         {
@@ -157,7 +158,7 @@ namespace Shortener_Client
                         valid = int.TryParse(Console.ReadLine(), out input);
                         if (valid)
                         {
-                            GetBlob(input);
+                            await GetBlob(input);
                         }
                         else
                         {
@@ -172,8 +173,9 @@ namespace Shortener_Client
                         Console.WriteLine();
                         await ShowMenu();
                         break;
-                } 
-            } else
+                }
+            }
+            else
             {
                 Console.WriteLine("Please enter an integer");
                 Console.WriteLine();
@@ -225,11 +227,11 @@ namespace Shortener_Client
         {
             //Post a new sample
             Random rand = new Random();
-            var sample = new Sample() { Title = "Craigs song v" + rand.Next(50), Artist = "Craig", DateOfSampleCreation = DateTime.Now };
+            var sample = new Sample() { Title = "Song " + rand.Next(50), Artist = "Craig", DateOfSampleCreation = DateTime.Now };
             HttpResponseMessage response = await client.PostAsJsonAsync("api/samples", sample);
             if (response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Sucessfully Posted new Sample to the api");
+                Console.WriteLine("Successfully Posted new Sample to the api");
             }
 
             await ReturnToMenu();
@@ -272,23 +274,54 @@ namespace Shortener_Client
 
         private static async Task PutBlob(int id)
         {
-            //Put blob to container
-            string path = Path.Combine(Environment.GetEnvironmentVariable("RoleRoot") + @"\", @"approot\Upload\Largo.mp3");
+            //Put blob to container over http
 
-            Console.WriteLine("Path to mp3 is: " + path);
-            Console.WriteLine("Current dir = " + Environment.CurrentDirectory);
-            Console.WriteLine("Option 3 = " + Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName);
+            string path = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + @"\Upload\Largo.mp3");
 
-            //TODO: Code this
+            using (var stream = File.OpenRead(path))
+            {
+                HttpResponseMessage res = await client.PutAsync("api/data/" + id, new StreamContent(stream));
+                res.EnsureSuccessStatusCode();
+
+                if (res.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("PUT file successfully to sample id " + id);
+                }
+
+            }
 
             await ReturnToMenu();
         }
 
-        private static void GetBlob(int id)
+        private static async Task GetBlob(int id)
         {
-            //Get blob from container
+            //Get blob from container over http
 
-            //TODO: Code this
+            string path = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + @"\Download\Downloaded-File.mp3");
+
+            HttpResponseMessage response = await client.GetAsync("api/data/" + id);
+
+            if (response.IsSuccessStatusCode) {
+
+                byte[] bytes = response.Content.ReadAsByteArrayAsync().Result;
+                Console.WriteLine("Downloaded {0} bytes", bytes.Length);
+                using (FileStream fileStream = new FileStream(path,
+                FileMode.Create, FileAccess.Write))
+
+                using (BinaryWriter binaryFileWriter = new BinaryWriter(fileStream))
+                {
+                    for (int i = 0; i < bytes.Length; i++)
+                    {
+                        binaryFileWriter.Write(bytes[i]);
+                    }
+                }
+
+                Console.WriteLine("Downloaded mp3.");
+
+            }
+
+            await ReturnToMenu();
+
         }
 
         private static async Task ReturnToMenu()

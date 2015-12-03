@@ -281,10 +281,13 @@ namespace Shortener_Client
 
                 //Update record by prepending 'New'to its Title
                 sample.Title = "New " + sample.Title;
+                sample.MP3Blob = null;
+                sample.SampleMP3Blob = null;
+                sample.SampleMP3URL = null;
                 response = await client.PutAsJsonAsync("api/samples/" + id, sample);
                 if (response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("Successfully updated Sample at ID" + id + " via PUT");
+                    Console.WriteLine("Successfully updated Sample at ID " + id + " via PUT");
                 }
             }
 

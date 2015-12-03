@@ -9,12 +9,78 @@ using System.Net.Http;
 using System.Web.Http;
 using System.Web.Http.Description;
 using ShortenerLibrary.Models;
+using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.WindowsAzure.Storage.Queue;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.ServiceRuntime;
 
 namespace Shortener_ApiWebRole.Controllers
 {
     public class SamplesController : ApiController
     {
         private SamplesContext db = new SamplesContext();
+        private static CloudBlobClient blobClient;
+        private static CloudQueueClient queueStorage;
+
+        private static bool created = false;
+        private static object @lock = new Object();
+
+        private void MakeContainerAndQueue()
+        {
+            if (created)
+                return;
+            lock (@lock)
+            {
+                if (created)
+                {
+                    return;
+                }
+
+                try
+                {
+
+                    var storageAccount = CloudStorageAccount.Parse(RoleEnvironment.GetConfigurationSettingValue("StorageConnectionString"));
+
+                    blobClient = storageAccount.CreateCloudBlobClient();
+
+                    CloudBlobContainer container = blobClient.GetContainerReference("sounds");
+
+                    container.CreateIfNotExists();
+
+                    var permissions = container.GetPermissions();
+                    permissions.PublicAccess = BlobContainerPublicAccessType.Container;
+                    container.SetPermissions(permissions);
+
+                    queueStorage = storageAccount.CreateCloudQueueClient();
+
+                    CloudQueue queue = queueStorage.GetQueueReference("soundqueue");
+
+                    queue.CreateIfNotExists();
+                }
+                catch (WebException)
+                {
+
+                    throw new WebException("The Windows Azure storage services cannot be contacted " +
+                         "via the current account configuration or the local development storage emulator is not running. ");
+                }
+
+                created = true;
+            }
+        }
+
+        private CloudBlobContainer GetSoundsContainer()
+        {
+            //returns the container where the sound files are stored
+            MakeContainerAndQueue();
+            return blobClient.GetContainerReference("sounds");
+        }
+
+        private CloudQueue GetSoundQueue()
+        {
+            //returns the CloudQueue where sound paths are stored temp
+            MakeContainerAndQueue();
+            return queueStorage.GetQueueReference("soundqueue");
+        }
 
         // GET: api/Samples
         public IQueryable<Sample> GetSamples()
@@ -48,6 +114,17 @@ namespace Shortener_ApiWebRole.Controllers
             {
                 return BadRequest();
             }
+
+            //Check if there was a previous 
+            var oldSample = db.Samples.Find(id);
+
+            if (GetSoundsContainer().GetBlockBlobReference(oldSample.SampleMP3Blob).Exists())
+            {
+                CloudBlockBlob blob = GetSoundsContainer().GetBlockBlobReference(oldSample.SampleMP3Blob);
+                blob.Delete();
+            }
+
+            db.Entry(oldSample).State = EntityState.Detached;
 
             db.Entry(sample).State = EntityState.Modified;
 
@@ -93,6 +170,11 @@ namespace Shortener_ApiWebRole.Controllers
             if (sample == null)
             {
                 return NotFound();
+            }
+            if (GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob).Exists())
+            {
+                CloudBlockBlob blob = GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob);
+                blob.Delete();
             }
 
             db.Samples.Remove(sample);

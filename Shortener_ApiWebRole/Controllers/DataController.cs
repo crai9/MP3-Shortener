@@ -112,7 +112,10 @@ namespace Shortener_ApiWebRole.Controllers
                 {
                     FileName = blob.Name,
                     Size = blob.Properties.Length
-                };                return res;
+                };
+
+                return res;
+
             }
             else
             {
@@ -144,10 +147,21 @@ namespace Shortener_ApiWebRole.Controllers
 
                 res.StatusCode = HttpStatusCode.OK;
 
-                //Set the sample url, aka the Get method of this controller
-                var baseUrl = Request.RequestUri.Host + ":" + (Int32.Parse(Request.RequestUri.GetComponents(UriComponents.StrongPort, UriFormat.SafeUnescaped))-1);
+                if (sample.SampleMP3Blob != null)
+                {
+                    //remove old blob first
+                    if (GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob).Exists())
+                    {
+                        CloudBlockBlob oldBlob = GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob);
+                        oldBlob.Delete();
+                    }
+                }
 
-                String sampleMP3URL = "http://" +  baseUrl.ToString() + "/api/data/" + id;                sample.SampleMP3URL = sampleMP3URL;
+                //Set the sample url, aka the Get method of this controller
+                var baseUrl = Request.RequestUri.Host + ":" + (Int32.Parse(Request.RequestUri.GetComponents(UriComponents.StrongPort, UriFormat.SafeUnescaped)));
+
+                String sampleMP3URL = "http://" +  baseUrl.ToString() + "/api/data/" + id;
+                sample.SampleMP3URL = sampleMP3URL;
 
                 var request = HttpContext.Current.Request;
 

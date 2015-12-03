@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -28,7 +29,22 @@ namespace Shortener_Client
             client.BaseAddress = new Uri("http://localhost:8080/");
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            Console.WriteLine("Checking connection to API...");
+
+            try
+            {
+                HttpResponseMessage response = await client.GetAsync("/");
+            }
+            catch (Exception ex) when (ex is WebException || ex is HttpRequestException)
+            {
+                Console.WriteLine("Could not reach the API. \n" + ex.Message + "\n\nExiting Application");
+                Console.ReadKey();
+                Environment.Exit(0);
+            }
+
             await ShowMenu();
+
         }
 
         private static async Task ShowMenu()
@@ -217,7 +233,10 @@ namespace Shortener_Client
                 Sample sample = await response.Content.ReadAsAsync<Sample>();
                 Console.WriteLine("Samples:");
 
-                Console.WriteLine("{0}\t{1}\t${2}\t{3}", sample.SampleID, sample.Title, sample.Artist, sample.DateOfSampleCreation);
+                Console.WriteLine("{0}\t{1}\t{2}\t{3}", "ID     ", "Title     ", "Artist     ", "Date     ");
+                Console.WriteLine("{0}\t{1}\t{2}\t{3}", "--     ", "-----     ", "------     ", "----     ");
+
+                Console.WriteLine("{0}\t{1}\t{2}\t{3}", sample.SampleID, sample.Title, sample.Artist, sample.DateOfSampleCreation);
 
             }
             await ReturnToMenu();
@@ -297,7 +316,7 @@ namespace Shortener_Client
         {
             //Get blob from container over http
 
-            string path = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + @"\Download\Downloaded-File.mp3");
+            string path = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + @"\Download\Downloaded-File-" + DateTime.Now.Ticks + ".mp3");
 
             HttpResponseMessage response = await client.GetAsync("api/data/" + id);
 

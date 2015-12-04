@@ -167,7 +167,7 @@ namespace Shortener_ApiWebRole.Controllers
 
                 //rename file
 
-                var newName = "uploaded" + string.Format("{0:10}_{1}{2}", DateTime.Now.Ticks, Guid.NewGuid(), ".mp3");
+                var newName = string.Format("{0:10}_{1}{2}", DateTime.Now.Ticks, Guid.NewGuid(), ".mp3");
                 
 
                 //set initial folder name to 'in'

@@ -8,10 +8,11 @@
     </ConfigurationSettings>
   </Role>
   <Role name="Shortener_WorkerRole">
-    <Instances count="3" />
+    <Instances count="1" />
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=craigsstorage;AccountKey=VdCy4W4ezgB/tIuRDjZxeFBAKlyE1luug6p5d4/S1JwQDk60cAaEb1EEOEJMKulWBhe2CVm3yl3z2P4EAhUcZg==" />
       <Setting name="StorageConnectionString" value="DefaultEndpointsProtocol=https;AccountName=craigsstorage;AccountKey=VdCy4W4ezgB/tIuRDjZxeFBAKlyE1luug6p5d4/S1JwQDk60cAaEb1EEOEJMKulWBhe2CVm3yl3z2P4EAhUcZg==" />
+      <Setting name="ShortenerDbConnectionString" value="Server=tcp:shortenerdb.database.windows.net,1433;Database=shortenerdb;User ID=craig@shortenerdb;Password=Password1;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" />
     </ConfigurationSettings>
   </Role>
   <Role name="Shortener_ApiWebRole">

@@ -27,6 +27,7 @@ namespace Shortener_Client
             Console.WriteLine("{0}", "Shortener Test Client\n");
 
             client.BaseAddress = new Uri("http://localhost:8080/");
+            //client.BaseAddress = new Uri("http://mp3s.cloudapp.net:8080/");
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
@@ -35,9 +36,11 @@ namespace Shortener_Client
             try
             {
                 HttpResponseMessage response = await client.GetAsync("/");
+                Console.WriteLine();
             }
             catch (Exception ex) when (ex is WebException || ex is HttpRequestException)
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Could not reach the API. \n" + ex.Message + "\n\nExiting Application");
                 Console.ReadKey();
                 Environment.Exit(0);
@@ -49,6 +52,8 @@ namespace Shortener_Client
 
         private static async Task ShowMenu()
         {
+            Console.ForegroundColor = ConsoleColor.White;
+
             Console.WriteLine("1.  GET all sample data");
             Console.WriteLine("2.  GET specific sample data");
             Console.WriteLine("3.  POST new sample");
@@ -184,7 +189,7 @@ namespace Shortener_Client
                         break;
 
                     default:
-
+                        Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine("Invalid input integer, try again..");
                         Console.WriteLine();
                         await ShowMenu();
@@ -214,6 +219,8 @@ namespace Shortener_Client
 
                 Console.WriteLine("{0}\t{1}\t{2}\t{3}", "ID     ", "Title     ", "Artist     ", "Date     ");
                 Console.WriteLine("{0}\t{1}\t{2}\t{3}", "--     ", "-----     ", "------     ", "----     ");
+
+                Console.ForegroundColor = ConsoleColor.Green;
                 foreach (var sample in samples)
                 {
                     Console.WriteLine("{0}     \t{1}     \t{2}     \t{3}", sample.SampleID, sample.Title, sample.Artist, sample.DateOfSampleCreation);
@@ -236,6 +243,7 @@ namespace Shortener_Client
                 Console.WriteLine("{0}\t{1}\t{2}\t{3}", "ID     ", "Title     ", "Artist     ", "Date     ");
                 Console.WriteLine("{0}\t{1}\t{2}\t{3}", "--     ", "-----     ", "------     ", "----     ");
 
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("{0}\t{1}\t{2}\t{3}", sample.SampleID, sample.Title, sample.Artist, sample.DateOfSampleCreation);
 
             }
@@ -250,6 +258,7 @@ namespace Shortener_Client
             HttpResponseMessage response = await client.PostAsJsonAsync("api/samples", sample);
             if (response.IsSuccessStatusCode)
             {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Successfully Posted new Sample to the api");
             }
 
@@ -264,6 +273,7 @@ namespace Shortener_Client
 
             if (response.IsSuccessStatusCode)
             {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Deleted sample at id: " + id);
             }
 
@@ -287,6 +297,7 @@ namespace Shortener_Client
                 response = await client.PutAsJsonAsync("api/samples/" + id, sample);
                 if (response.IsSuccessStatusCode)
                 {
+                    Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine("Successfully updated Sample at ID " + id + " via PUT");
                 }
             }
@@ -307,6 +318,7 @@ namespace Shortener_Client
 
                 if (res.IsSuccessStatusCode)
                 {
+                    Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine("PUT file successfully to sample id " + id);
                 }
 
@@ -337,7 +349,7 @@ namespace Shortener_Client
                         binaryFileWriter.Write(bytes[i]);
                     }
                 }
-
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Downloaded mp3.");
 
             }
@@ -348,9 +360,11 @@ namespace Shortener_Client
 
         private static async Task ReturnToMenu()
         {
+            Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine();
             Console.WriteLine("Press any key to continue");
             Console.ReadKey();
+            Console.WriteLine();
             await ShowMenu();
         }
     }

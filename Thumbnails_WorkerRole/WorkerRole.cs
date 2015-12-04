@@ -9,6 +9,7 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using System.IO;
 using System;
 using ShortenerLibrary.Models;
+using Microsoft.WindowsAzure;
 
 namespace Shortener_WorkerRole
 {
@@ -171,8 +172,8 @@ namespace Shortener_WorkerRole
 
         private void ProcessQueueMessageFromApi(CloudQueueMessage msg, int id)
         {
-
-            SamplesContext db = new SamplesContext();
+            var dbConnString = CloudConfigurationManager.GetSetting("ShortenerDbConnectionString");
+            SamplesContext db = new SamplesContext(dbConnString);
 
             var sample = db.Samples.Find(id);
 

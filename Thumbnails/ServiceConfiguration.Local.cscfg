@@ -8,10 +8,11 @@
     </ConfigurationSettings>
   </Role>
   <Role name="Shortener_WorkerRole">
-    <Instances count="3" />
+    <Instances count="1" />
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="UseDevelopmentStorage=true" />
       <Setting name="StorageConnectionString" value="UseDevelopmentStorage=true" />
+      <Setting name="ShortenerDbConnectionString" value="Data Source=(localdb)\MSSQLLocalDB; Initial Catalog=Samples-291015; Integrated Security=True; MultipleActiveResultSets=True;" />
     </ConfigurationSettings>
   </Role>
   <Role name="Shortener_ApiWebRole">

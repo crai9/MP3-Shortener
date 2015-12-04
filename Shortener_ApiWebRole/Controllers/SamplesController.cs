@@ -171,11 +171,15 @@ namespace Shortener_ApiWebRole.Controllers
             {
                 return NotFound();
             }
-            if (GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob).Exists())
+            if (sample.SampleMP3Blob != null)
             {
-                CloudBlockBlob blob = GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob);
-                blob.Delete();
+                if (GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob).Exists())
+                {
+                    CloudBlockBlob blob = GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob);
+                    blob.Delete();
+                }
             }
+
 
             db.Samples.Remove(sample);
             db.SaveChanges();

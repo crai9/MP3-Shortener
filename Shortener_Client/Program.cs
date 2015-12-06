@@ -1,6 +1,9 @@
-﻿using ShortenerLibrary.Models;
+﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using ShortenerLibrary.Models;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -14,6 +17,13 @@ namespace Shortener_Client
     class Program
     {
         static HttpClient client = new HttpClient();
+        private static string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
+        private static string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
+        private static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
+        private static string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
+
+        private static string todoListResourceId = ConfigurationManager.AppSettings["todo:TodoListResourceId"];
+        private static AuthenticationContext authContext = null;
 
         static void Main(string[] args)
         {
@@ -24,10 +34,14 @@ namespace Shortener_Client
 
         static async Task Init()
         {
+            Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("{0}", "Shortener Test Client\n");
 
-            client.BaseAddress = new Uri("http://localhost:8080/");
+            authContext = new AuthenticationContext(authority, new FileCache());
+
+            //client.BaseAddress = new Uri("http://localhost:8080/");
             //client.BaseAddress = new Uri("http://mp3s.cloudapp.net:8080/");
+            client.BaseAddress = new Uri("https://localhost:44321/");
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
@@ -61,9 +75,11 @@ namespace Shortener_Client
             Console.WriteLine("5.  PUT information for existing sample");
             Console.WriteLine("6.  PUT blob data for existing sample");
             Console.WriteLine("7.  GET blob data for existing sample");
-
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("8.  Clear the token cache (logout)");
             Console.WriteLine("0.  Exit the application.");
             Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("\nSelect an option by entering a number..");
             Console.WriteLine();
 
@@ -188,6 +204,12 @@ namespace Shortener_Client
 
                         break;
 
+                    case 8: ClearCache();
+
+                        await ReturnToMenu();
+
+                        break;
+
                     default:
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine("Invalid input integer, try again..");
@@ -208,6 +230,17 @@ namespace Shortener_Client
 
         private static async Task GetAll()
         {
+            //try to authenticate the user using ad
+            AuthenticationResult result = getAuthResult();
+
+            if (result == null)
+            {
+                await ReturnToMenu();
+            } else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
+            }
+
             //Get all samples
             HttpResponseMessage response;
             response = await client.GetAsync("api/samples");
@@ -226,11 +259,38 @@ namespace Shortener_Client
                     Console.WriteLine("{0}     \t{1}     \t{2}     \t{3}", sample.SampleID, sample.Title, sample.Artist, sample.DateOfSampleCreation);
                 }
             }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    // If the To Do list service returns access denied, clear the token cache and have the user sign-in again.                    
+                    Console.WriteLine("Sorry, you don't have access to the To Do Service. You might need to sign up.");
+                    authContext.TokenCache.Clear();
+                }
+                else
+                {
+                    Console.WriteLine("Sorry, an error occurred accessing your To Do list.  Please try again.");
+                }
+            }
+
             await ReturnToMenu();
         }
 
         private static async Task GetOne(int id)
         {
+            //try to authenticate the user using ad
+            AuthenticationResult result = getAuthResult();
+
+            if (result == null)
+            {
+                await ReturnToMenu();
+            }
+            else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
+            }
+
             //Get a sample by id
             HttpResponseMessage response;
             response = await client.GetAsync("api/samples/" + id);
@@ -252,6 +312,18 @@ namespace Shortener_Client
 
         private static async Task Post()
         {
+            //try to authenticate the user using ad
+            AuthenticationResult result = getAuthResult();
+
+            if (result == null)
+            {
+                await ReturnToMenu();
+            }
+            else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
+            }
+
             //Post a new sample
             Random rand = new Random();
             var sample = new Sample() { Title = "Song " + rand.Next(50), Artist = "Craig", DateOfSampleCreation = DateTime.Now };
@@ -267,6 +339,18 @@ namespace Shortener_Client
 
         private static async Task Delete(int id)
         {
+            //try to authenticate the user using ad
+            AuthenticationResult result = getAuthResult();
+
+            if (result == null)
+            {
+                await ReturnToMenu();
+            }
+            else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
+            }
+
             //Delete a sample
             HttpResponseMessage response;
             response = await client.DeleteAsync("api/samples/" + id);
@@ -282,6 +366,18 @@ namespace Shortener_Client
 
         private static async Task Put(int id)
         {
+            //try to authenticate the user using ad
+            AuthenticationResult result = getAuthResult();
+
+            if (result == null)
+            {
+                await ReturnToMenu();
+            }
+            else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
+            }
+
             //Overwrite information in an existing record by ID
             HttpResponseMessage response;
             response = await client.GetAsync("api/samples/" + id);
@@ -307,6 +403,18 @@ namespace Shortener_Client
 
         private static async Task PutBlob(int id)
         {
+            //try to authenticate the user using ad
+            AuthenticationResult result = getAuthResult();
+
+            if (result == null)
+            {
+                await ReturnToMenu();
+            }
+            else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
+            }
+
             //Put blob to container over http
 
             string path = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + @"\Upload\Largo.mp3");
@@ -327,8 +435,56 @@ namespace Shortener_Client
             await ReturnToMenu();
         }
 
+        public static AuthenticationResult getAuthResult()
+        {
+            AuthenticationResult result = null;
+            // first, try to get a token silently
+            try
+            {
+                result = authContext.AcquireTokenSilent(todoListResourceId, clientId);
+            }
+            catch (AdalException ex)
+            {
+                // There is no token in the cache; prompt the user to sign-in.
+                if (ex.ErrorCode == "failed_to_acquire_token_silently")
+                {
+                    UserCredential uc = TextualPrompt();
+                    // if you want to use Windows integrated auth, comment the line above and uncomment the one below
+                    // UserCredential uc = new UserCredential();
+                    try
+                    {
+                        result = authContext.AcquireToken(todoListResourceId, clientId, uc);
+                    }
+                    catch (Exception ee)
+                    {
+                        ShowError(ee);
+                        return null;
+                    }
+                }
+                else
+                {
+                    // An unexpected error occurred.
+                    ShowError(ex);
+                    return null;
+                }
+            }
+            return result;
+        }
+
         private static async Task GetBlob(int id)
         {
+            //try to authenticate the user using ad
+            AuthenticationResult result = getAuthResult();
+
+            if (result == null)
+            {
+                await ReturnToMenu();
+            }
+            else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
+            }
+
             //Get blob from container over http
 
             string path = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + @"\Download\Downloaded-File-" + DateTime.Now.Ticks + ".mp3");
@@ -358,6 +514,57 @@ namespace Shortener_Client
 
         }
 
+        static string ReadPasswordFromConsole()
+        {
+            string password = string.Empty;
+            ConsoleKeyInfo key;
+            do
+            {
+                key = Console.ReadKey(true);
+                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
+                {
+                    password += key.KeyChar;
+                    Console.Write("*");
+                }
+                else
+                {
+                    if (key.Key == ConsoleKey.Backspace && password.Length > 0)
+                    {
+                        password = password.Substring(0, (password.Length - 1));
+                        Console.Write("\b \b");
+                    }
+                }
+            }
+            while (key.Key != ConsoleKey.Enter);
+            return password;
+        }
+
+        static void ShowError(Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("An unexpected error occurred.");
+            string message = ex.Message;
+            if (ex.InnerException != null)
+            {
+                message += Environment.NewLine + "Inner Exception : " + ex.InnerException.Message;
+            }
+            Console.WriteLine("Message: {0}", message);
+        }
+
+        static UserCredential TextualPrompt()
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("There is no token in the cache or you are not connected to your domain.");
+            Console.WriteLine("Please enter username and password to sign in.");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("User>");
+            string user = Console.ReadLine();
+            Console.WriteLine("Password>");
+            string password = ReadPasswordFromConsole();
+            Console.WriteLine("");
+            return new UserCredential(user, password);
+        }
+
         private static async Task ReturnToMenu()
         {
             Console.ForegroundColor = ConsoleColor.White;
@@ -366,6 +573,13 @@ namespace Shortener_Client
             Console.ReadKey();
             Console.WriteLine();
             await ShowMenu();
+        }
+
+        static void ClearCache()
+        {
+            authContext.TokenCache.Clear();
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Token cache cleared.");
         }
     }
 }

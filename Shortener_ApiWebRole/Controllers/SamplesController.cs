@@ -13,9 +13,12 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.ServiceRuntime;
+using System.Collections.Concurrent;
+using System.Security.Claims;
 
 namespace Shortener_ApiWebRole.Controllers
 {
+    [Authorize]
     public class SamplesController : ApiController
     {
         private SamplesContext db = new SamplesContext();
@@ -83,9 +86,12 @@ namespace Shortener_ApiWebRole.Controllers
         }
 
         // GET: api/Samples
-        public IQueryable<Sample> GetSamples()
+        
+        public IQueryable<Sample>  GetSamples()
         {
+
             return db.Samples;
+
         }
 
         // GET: api/Samples/5

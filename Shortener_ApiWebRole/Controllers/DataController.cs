@@ -12,8 +12,12 @@ using System.Net.Http;
 using System.Web;
 using System.Web.Http;
 
+using System.Collections.Concurrent;
+using System.Security.Claims;
+
 namespace Shortener_ApiWebRole.Controllers
 {
+    [Authorize]
     public class DataController : ApiController
     {
 

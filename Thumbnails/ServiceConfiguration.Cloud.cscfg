@@ -21,5 +21,8 @@
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=craigsstorage;AccountKey=VdCy4W4ezgB/tIuRDjZxeFBAKlyE1luug6p5d4/S1JwQDk60cAaEb1EEOEJMKulWBhe2CVm3yl3z2P4EAhUcZg==" />
       <Setting name="StorageConnectionString" value="DefaultEndpointsProtocol=https;AccountName=craigsstorage;AccountKey=VdCy4W4ezgB/tIuRDjZxeFBAKlyE1luug6p5d4/S1JwQDk60cAaEb1EEOEJMKulWBhe2CVm3yl3z2P4EAhUcZg==" />
     </ConfigurationSettings>
+    <Certificates>
+      <Certificate name="Certificate1" thumbprint="DA30AEA4C2450A5968C32E0FAB99643C2047A3DB" thumbprintAlgorithm="sha1" />
+    </Certificates>
   </Role>
 </ServiceConfiguration>

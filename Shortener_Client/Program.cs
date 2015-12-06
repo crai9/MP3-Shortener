@@ -231,7 +231,7 @@ namespace Shortener_Client
         private static async Task GetAll()
         {
             //try to authenticate the user using ad
-            AuthenticationResult result = getAuthResult();
+            AuthenticationResult result = await getAuthResult();
 
             if (result == null)
             {
@@ -259,20 +259,7 @@ namespace Shortener_Client
                     Console.WriteLine("{0}     \t{1}     \t{2}     \t{3}", sample.SampleID, sample.Title, sample.Artist, sample.DateOfSampleCreation);
                 }
             }
-            else
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                {
-                    // If the To Do list service returns access denied, clear the token cache and have the user sign-in again.                    
-                    Console.WriteLine("Sorry, you don't have access to the To Do Service. You might need to sign up.");
-                    authContext.TokenCache.Clear();
-                }
-                else
-                {
-                    Console.WriteLine("Sorry, an error occurred accessing your To Do list.  Please try again.");
-                }
-            }
+
 
             await ReturnToMenu();
         }
@@ -280,7 +267,7 @@ namespace Shortener_Client
         private static async Task GetOne(int id)
         {
             //try to authenticate the user using ad
-            AuthenticationResult result = getAuthResult();
+            AuthenticationResult result = await getAuthResult();
 
             if (result == null)
             {
@@ -313,7 +300,7 @@ namespace Shortener_Client
         private static async Task Post()
         {
             //try to authenticate the user using ad
-            AuthenticationResult result = getAuthResult();
+            AuthenticationResult result = await getAuthResult();
 
             if (result == null)
             {
@@ -340,7 +327,7 @@ namespace Shortener_Client
         private static async Task Delete(int id)
         {
             //try to authenticate the user using ad
-            AuthenticationResult result = getAuthResult();
+            AuthenticationResult result = await getAuthResult();
 
             if (result == null)
             {
@@ -367,7 +354,7 @@ namespace Shortener_Client
         private static async Task Put(int id)
         {
             //try to authenticate the user using ad
-            AuthenticationResult result = getAuthResult();
+            AuthenticationResult result = await getAuthResult();
 
             if (result == null)
             {
@@ -404,7 +391,7 @@ namespace Shortener_Client
         private static async Task PutBlob(int id)
         {
             //try to authenticate the user using ad
-            AuthenticationResult result = getAuthResult();
+            AuthenticationResult result = await getAuthResult();
 
             if (result == null)
             {
@@ -435,7 +422,7 @@ namespace Shortener_Client
             await ReturnToMenu();
         }
 
-        public static AuthenticationResult getAuthResult()
+        public static async Task<AuthenticationResult> getAuthResult()
         {
             AuthenticationResult result = null;
             // first, try to get a token silently
@@ -454,6 +441,7 @@ namespace Shortener_Client
                     try
                     {
                         result = authContext.AcquireToken(todoListResourceId, clientId, uc);
+                        await ShowName();
                     }
                     catch (Exception ee)
                     {
@@ -471,10 +459,37 @@ namespace Shortener_Client
             return result;
         }
 
+        private static async Task ShowName()
+        {
+            //try to authenticate the user using ad
+            AuthenticationResult result = await getAuthResult();
+
+            if (result == null)
+            {
+            }
+            else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
+            }
+
+            HttpResponseMessage response;
+            response = await client.GetAsync("api/name");
+            if (response.IsSuccessStatusCode)
+            {
+
+                String name = await response.Content.ReadAsStringAsync();
+
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Welcome " + name + "!");
+
+            }
+
+        }
+
         private static async Task GetBlob(int id)
         {
             //try to authenticate the user using ad
-            AuthenticationResult result = getAuthResult();
+            AuthenticationResult result = await getAuthResult();
 
             if (result == null)
             {

@@ -93,6 +93,29 @@ namespace Shortener_ApiWebRole.Controllers
             return db.Samples;
 
         }
+        [Route("api/name")]
+        [HttpGet]
+        public HttpResponseMessage GetName()
+        {
+            HttpResponseMessage res = new HttpResponseMessage(HttpStatusCode.OK);
+
+            ClaimsPrincipal cp = ClaimsPrincipal.Current;
+
+            if (cp.Identity.IsAuthenticated)
+            {
+                string name = string.Format("{0} {1}", cp.FindFirst(ClaimTypes.GivenName).Value, cp.FindFirst(ClaimTypes.Surname).Value);
+
+                res.Content = new StringContent(name);
+                return res;
+
+            } else
+            {
+                res.StatusCode = HttpStatusCode.Unauthorized;
+                return res;
+
+            }
+
+        }
 
         // GET: api/Samples/5
         [ResponseType(typeof(Sample))]

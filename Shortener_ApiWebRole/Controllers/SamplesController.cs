@@ -18,9 +18,12 @@ using System.Security.Claims;
 
 namespace Shortener_ApiWebRole.Controllers
 {
+
+    //Controller for the Sample table
     [Authorize]
     public class SamplesController : ApiController
     {
+        //Define variables that can be accessed across the Class.
         private SamplesContext db = new SamplesContext();
         private static CloudBlobClient blobClient;
         private static CloudQueueClient queueStorage;
@@ -28,6 +31,7 @@ namespace Shortener_ApiWebRole.Controllers
         private static bool created = false;
         private static object @lock = new Object();
 
+        //Method to create a reference to the Cloud Queue and the Container if they don't exist already.
         private void MakeContainerAndQueue()
         {
             if (created)
@@ -89,10 +93,12 @@ namespace Shortener_ApiWebRole.Controllers
         
         public IQueryable<Sample>  GetSamples()
         {
-
+            //return all attributes of all samples.
             return db.Samples;
 
         }
+
+        //Return the authenticated user's First and Last name.
         [Route("api/name")]
         [HttpGet]
         public HttpResponseMessage GetName()
@@ -100,9 +106,11 @@ namespace Shortener_ApiWebRole.Controllers
             HttpResponseMessage res = new HttpResponseMessage(HttpStatusCode.OK);
 
             ClaimsPrincipal cp = ClaimsPrincipal.Current;
-
+            
+            //Only return a value if the user is authenticated.
             if (cp.Identity.IsAuthenticated)
             {
+                //Extract values from the Claim.
                 string name = string.Format("{0} {1}", cp.FindFirst(ClaimTypes.GivenName).Value, cp.FindFirst(ClaimTypes.Surname).Value);
 
                 res.Content = new StringContent(name);
@@ -121,6 +129,7 @@ namespace Shortener_ApiWebRole.Controllers
         [ResponseType(typeof(Sample))]
         public IHttpActionResult GetSample(int id)
         {
+            //Get the record from the DB with the ID Specified if it exists.
             Sample sample = db.Samples.Find(id);
             if (sample == null)
             {
@@ -134,6 +143,7 @@ namespace Shortener_ApiWebRole.Controllers
         [ResponseType(typeof(void))]
         public IHttpActionResult PutSample(int id, Sample sample)
         {
+            //Check if supplied model is valid.
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -149,12 +159,13 @@ namespace Shortener_ApiWebRole.Controllers
 
             if (GetSoundsContainer().GetBlockBlobReference(oldSample.SampleMP3Blob).Exists())
             {
+                //Delete the old blob
                 CloudBlockBlob blob = GetSoundsContainer().GetBlockBlobReference(oldSample.SampleMP3Blob);
                 blob.Delete();
             }
 
             db.Entry(oldSample).State = EntityState.Detached;
-
+            //Update the record.
             db.Entry(sample).State = EntityState.Modified;
 
             try
@@ -180,11 +191,13 @@ namespace Shortener_ApiWebRole.Controllers
         [ResponseType(typeof(Sample))]
         public IHttpActionResult PostSample(Sample sample)
         {
+            //Create a new record if the model is valid.
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
+            //Save the record to the DB.
             db.Samples.Add(sample);
             db.SaveChanges();
 
@@ -195,6 +208,7 @@ namespace Shortener_ApiWebRole.Controllers
         [ResponseType(typeof(Sample))]
         public IHttpActionResult DeleteSample(int id)
         {
+            //Delete the record from the DB by ID.
             Sample sample = db.Samples.Find(id);
             if (sample == null)
             {
@@ -202,6 +216,7 @@ namespace Shortener_ApiWebRole.Controllers
             }
             if (sample.SampleMP3Blob != null)
             {
+                //Delete the old sample's blob from the Container if it exists.
                 if (GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob).Exists())
                 {
                     CloudBlockBlob blob = GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob);
@@ -209,7 +224,7 @@ namespace Shortener_ApiWebRole.Controllers
                 }
             }
 
-
+            //Save changes to the DB.
             db.Samples.Remove(sample);
             db.SaveChanges();
 
@@ -225,6 +240,7 @@ namespace Shortener_ApiWebRole.Controllers
             base.Dispose(disposing);
         }
 
+        //Check if a sample exists.
         private bool SampleExists(int id)
         {
             return db.Samples.Count(e => e.SampleID == id) > 0;

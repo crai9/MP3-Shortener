@@ -5,6 +5,7 @@ namespace ShortenerLibrary.Migrations
     
     public partial class initial : DbMigration
     {
+        //Initial database migration. Creates the Samples DB table.
         public override void Up()
         {
             CreateTable(
@@ -22,7 +23,7 @@ namespace ShortenerLibrary.Migrations
                 .PrimaryKey(t => t.SampleID);
             
         }
-        
+        //Removes the samples table.
         public override void Down()
         {
             DropTable("dbo.Samples");

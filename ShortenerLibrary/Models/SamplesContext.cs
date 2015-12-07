@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace ShortenerLibrary.Models
 {
+    //Sample Context that is referenced through the solution in order to query the database via Entity Framework.
     public class SamplesContext : DbContext
     {
         public SamplesContext() : base("SamplesContext")

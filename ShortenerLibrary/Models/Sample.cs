@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace ShortenerLibrary.Models
 {
+    //Sample Model class that holds data about a sample.
     public class Sample
     {
         public int SampleID { get; set; }

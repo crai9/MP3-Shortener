@@ -4,7 +4,6 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using ShortenerLibrary.Models;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -12,15 +11,12 @@ using System.Net.Http;
 using System.Web;
 using System.Web.Http;
 
-using System.Collections.Concurrent;
-using System.Security.Claims;
-
 namespace Shortener_ApiWebRole.Controllers
 {
     [Authorize]
     public class DataController : ApiController
     {
-
+        //Define variables for the scope of the class.
         private SamplesContext db = new SamplesContext();
         private static CloudBlobClient blobClient;
         private static CloudQueueClient queueStorage;
@@ -28,6 +24,7 @@ namespace Shortener_ApiWebRole.Controllers
         private static bool created = false;
         private static object @lock = new Object();
 
+        //Make container and queue objects if they don't exist.
         private void MakeContainerAndQueue()
         {
             if (created)
@@ -90,7 +87,7 @@ namespace Shortener_ApiWebRole.Controllers
         {
 
             HttpResponseMessage res = new HttpResponseMessage(HttpStatusCode.OK);
-
+            //Check that there is a record with the supplied ID.
             if (db.Samples.Any(o => o.SampleID == id))
             {
                 var sample = db.Samples.Find(id);
@@ -103,11 +100,15 @@ namespace Shortener_ApiWebRole.Controllers
                     return res;
                 }
 
+                //Get blob from the container via its SampleMP3Blob attribute.
                 CloudBlockBlob blob = GetSoundsContainer().GetBlockBlobReference(sample.SampleMP3Blob);
 
                 Stream blobStream = blob.OpenRead();
 
+                //Set the content to the blob's stream.
                 res.Content = new StreamContent(blobStream);
+
+                //Set HTTP headers.
                 res.Content.Headers.ContentLength = blob.Properties.Length;
                 res.Content.Headers.ContentType = new
                 System.Net.Http.Headers.MediaTypeHeaderValue("audio/mpeg3");

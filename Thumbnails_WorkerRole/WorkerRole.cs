@@ -13,8 +13,10 @@ using Microsoft.WindowsAzure;
 
 namespace Shortener_WorkerRole
 {
+    //Worker Role that runs in Azure, recieves messages from the Web Roles to know when to perform an action on an MP3. 
     public class WorkerRole : RoleEntryPoint
     {
+        //Define classes that will be used through the scope of the Class.
         private CloudQueue soundQueue;
         private CloudBlobContainer soundBlobContainer;
         private String fullInPath;
@@ -52,6 +54,7 @@ namespace Shortener_WorkerRole
             return instanceId.Substring(instanceId.LastIndexOf("_") + 1);
         }
 
+        //Call the FFMpeg.exe via a process to Shorten it to a sample.
         private bool CropSound(int seconds = 30)
         {
             bool success = false;
@@ -96,10 +99,11 @@ namespace Shortener_WorkerRole
             //Log("Exe located at: " + GetExePath());
             Log("Creating sounds blob container");
 
-
+            //Get reference to the Azure Container.
             var blobClient = storageAccount.CreateCloudBlobClient();
             soundBlobContainer = blobClient.GetContainerReference("sounds");
 
+            //Create the Container if it doesn't already exits.
             if (soundBlobContainer.CreateIfNotExists())
             {
                 soundBlobContainer.SetPermissions(
@@ -109,7 +113,7 @@ namespace Shortener_WorkerRole
                     });
             }
 
-            
+            //Get a reference to the Azure Cloud Queue for use later, or create it if it doesn't exist.
             Log("Creating sound queue");
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
             soundQueue = queueClient.GetQueueReference("soundqueue");
@@ -125,7 +129,8 @@ namespace Shortener_WorkerRole
             Log("Shortener_WorkerRole is running");
 
             CloudQueueMessage msg = null;
-
+            
+            //Run an infinite loop to check for new Queue messages.
             while (true)
             {
 
@@ -140,11 +145,13 @@ namespace Shortener_WorkerRole
                         int id;
                         if (Int32.TryParse(msg.AsString, out id))
                         {
-                            //Is a Sample ID
+                            //Is a Sample ID, message came from ApiWebRole.
+                            //Process the message.
                             ProcessQueueMessageFromApi(msg, id);
                         } else
                         {
-                            //Is a file name
+                            //Is a file name, message came from WebRole.
+                            //Process the message.
                             ProcessQueueMessage(msg);
                         }
 
@@ -153,6 +160,7 @@ namespace Shortener_WorkerRole
                     }
                     else
                     {
+                        //Wait one second before checking for new queue messages.
                         System.Threading.Thread.Sleep(1000);
                     }
                 }
@@ -165,6 +173,7 @@ namespace Shortener_WorkerRole
                         this.soundQueue.DeleteMessage(msg);
                         Trace.TraceError("Deleting poison queue item: '{0}'", msg.AsString);
                     }
+                    //Wait 5 seconds before checking for new messages after an Exception occured.
                     System.Threading.Thread.Sleep(5000);
                 }
             }
@@ -172,9 +181,11 @@ namespace Shortener_WorkerRole
 
         private void ProcessQueueMessageFromApi(CloudQueueMessage msg, int id)
         {
+            //Get connection to the DB via the Samples Context.
             var dbConnString = CloudConfigurationManager.GetSetting("ShortenerDbConnectionString");
             SamplesContext db = new SamplesContext(dbConnString);
 
+            //Find the record with the ID that was taken from the Message.
             var sample = db.Samples.Find(id);
 
             Log("ID from queue is " + id);
@@ -182,6 +193,7 @@ namespace Shortener_WorkerRole
 
             Log("File name from DB for ID " + id + " is: " + sample.Title);
 
+            //Store the Blob path as a local variable
             string path = sample.MP3Blob;
 
             //get input blob
@@ -249,10 +261,11 @@ namespace Shortener_WorkerRole
             outputBlob.Metadata["InstanceNo"] = GetInstanceIndex();
             outputBlob.SetMetadata();
 
-
+            //Add the SampleMP3Date to the DB record.
             sample.SampleMP3Blob = @"out\" + soundName;
             sample.DateOfSampleCreation = DateTime.Now;
 
+            //Save changes made to the record.
             db.SaveChanges();
 
             //Print blob metadata to console
@@ -369,6 +382,7 @@ namespace Shortener_WorkerRole
 
         public override void OnStop()
         {
+            //Code to run on a graceful stop of the WebRole
             Log("Shortener_WorkerRole is stopping");
 
             this.cancellationTokenSource.Cancel();
@@ -379,8 +393,10 @@ namespace Shortener_WorkerRole
             Log("Shortener_WorkerRole has stopped");
         }
 
+        //Log data that is taken from the File's Metadata.
         protected void LogMP3Metadata(TagLib.File file)
         {
+            
             Log("File's metadata:");
 
             Log("  Title: " + file.Tag.Title);
@@ -394,6 +410,7 @@ namespace Shortener_WorkerRole
 
         }
 
+        //Short-hand method to write to Azure Compute Emulator's console.
         protected void Log(String msg)
         {
             Trace.TraceInformation(msg);
@@ -401,7 +418,7 @@ namespace Shortener_WorkerRole
 
         private async Task RunAsync(CancellationToken cancellationToken)
         {
-            // TODO: Replace the following with your own logic.
+            //Run tasks asynchronously 
             while (!cancellationToken.IsCancellationRequested)
             {
                 Log("Working");

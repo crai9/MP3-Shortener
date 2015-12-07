@@ -11,12 +11,15 @@ namespace Shortener_WebRole
 {
     public partial class _Default : System.Web.UI.Page
     {
+
+        //Define variables that are accessable through the Class' scope.
         private static CloudBlobClient blobClient;
         private static CloudQueueClient queueStorage;
 
         private static bool created = false;
         private static object @lock = new Object();
 
+        //Initialise the Sounds container and Sounds Queue if aren't already.
         private void MakeContainerAndQueue()
         {
             if (created)
@@ -75,6 +78,7 @@ namespace Shortener_WebRole
             return queueStorage.GetQueueReference("soundqueue");
         }
 
+        //Get the mime type from a file name.S
         private string GetMimeType(string Filename)
         {
             try
@@ -158,6 +162,7 @@ namespace Shortener_WebRole
             return blob.Metadata["InstanceNo"];
         }
 
+        //Shorthand way to Log messages.
         protected void Log(String msg)
         {
             System.Diagnostics.Trace.WriteLine(msg);

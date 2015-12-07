@@ -6,6 +6,7 @@ namespace Shortener_ApiWebRole
     {
         public void Configuration(IAppBuilder app)
         {
+            //Configure the app from the StartUp.Auth.cs
             ConfigureAuth(app);
         }
     }

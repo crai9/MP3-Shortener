@@ -5,6 +5,7 @@ namespace ShortenerLibrary.Migrations
 {
     public static class InitialiseSamples
     {
+        //Code called from Global.asax.cs on first run to add records to DB.
         public static void go()
         {
             var configuration = new Configuration();
@@ -14,7 +15,3 @@ namespace ShortenerLibrary.Migrations
     }
 }
 
-// This class is only needed when you come to deploy the service in Azure to create an initial populated database
-// It goes in the migrations folder
-// call go() from end of the Global.asax.cs code
-// COMMENT THE CALL TO go() OUT WHEN YOU RUN IT LOCALLY!

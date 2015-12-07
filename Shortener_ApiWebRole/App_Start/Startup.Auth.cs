@@ -11,12 +11,13 @@ namespace Shortener_ApiWebRole
 {
     public partial class Startup
     {
-        // For more information on configuring authentication, please visit http://go.microsoft.com/fwlink/?LinkId=301864
+        //Confgire the authentication for the controllers.
         public void ConfigureAuth(IAppBuilder app)
         {
             app.UseWindowsAzureActiveDirectoryBearerAuthentication(
                 new WindowsAzureActiveDirectoryBearerAuthenticationOptions
                 {
+                    //Use the AD details to define how users are authenticated.
                     Tenant = ConfigurationManager.AppSettings["ida:Tenant"],
                     TokenValidationParameters = new TokenValidationParameters
                     {

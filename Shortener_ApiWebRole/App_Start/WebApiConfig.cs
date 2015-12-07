@@ -20,6 +20,7 @@ namespace Shortener_ApiWebRole
                 defaults: new { id = RouteParameter.Optional }
             );
 
+            //Prefer to return JSON
             var appXmlType = config.Formatters.XmlFormatter.SupportedMediaTypes.FirstOrDefault(t => t.MediaType == "application/xml");
             config.Formatters.XmlFormatter.SupportedMediaTypes.Remove(appXmlType);
         }

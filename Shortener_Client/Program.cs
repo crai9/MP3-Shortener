@@ -16,37 +16,47 @@ namespace Shortener_Client
 {
     class Program
     {
+        //Initialise new Http Client.
         static HttpClient client = new HttpClient();
+
+        //Get Azure Active Directory details from the App.config file.
         private static string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
         private static string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
         private static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
         private static string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
 
-        private static string todoListResourceId = ConfigurationManager.AppSettings["todo:TodoListResourceId"];
+        private static string shortenerResourceId = ConfigurationManager.AppSettings["todo:ShortenerResourceId"];
         private static AuthenticationContext authContext = null;
 
         static void Main(string[] args)
         {
-
+            //Run the console application.
             Init().Wait();
 
         }
 
         static async Task Init()
         {
+            //Print App Name.
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("{0}", "Shortener Test Client\n");
 
+            //Establish new Auth Context.
             authContext = new AuthenticationContext(authority, new FileCache());
 
+            //Uncomment the appropriate Base Address for where the Api is running.
             //client.BaseAddress = new Uri("http://localhost:8080/");
             //client.BaseAddress = new Uri("http://mp3s.cloudapp.net:8080/");
             client.BaseAddress = new Uri("https://localhost:44321/");
+
+            //Clear existing headers.
             client.DefaultRequestHeaders.Accept.Clear();
+            //Request JSON instead of XML from the API.
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             Console.WriteLine("Checking connection to API...");
 
+            //Send a Get request to "/" to see if the API is online.
             try
             {
                 HttpResponseMessage response = await client.GetAsync("/");
@@ -54,6 +64,7 @@ namespace Shortener_Client
             }
             catch (Exception ex) when (ex is WebException || ex is HttpRequestException)
             {
+                //Exit application if API is offline.
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Could not reach the API. \n" + ex.Message + "\n\nExiting Application");
                 Console.ReadKey();
@@ -66,6 +77,7 @@ namespace Shortener_Client
 
         private static async Task ShowMenu()
         {
+            //Display Menu to the user.
             Console.ForegroundColor = ConsoleColor.White;
 
             Console.WriteLine("1.  GET all sample data");
@@ -83,6 +95,7 @@ namespace Shortener_Client
             Console.WriteLine("\nSelect an option by entering a number..");
             Console.WriteLine();
 
+            //Get user's choice
             int input = 0;
             bool fine = int.TryParse(Console.ReadLine(), out input);
 
@@ -90,6 +103,7 @@ namespace Shortener_Client
             {
                 bool valid;
                 Console.WriteLine();
+                //Choose method to run in response to the user's input
                 switch (input)
                 {
                     case 0:
@@ -109,7 +123,7 @@ namespace Shortener_Client
                         break;
 
                     case 2:
-
+                        //Get a specific sample
                         Console.WriteLine("Enter the ID of the Sample you want info on");
                         Console.WriteLine();
                         input = 0;
@@ -127,6 +141,7 @@ namespace Shortener_Client
                         break;
 
                     case 3:
+                        //Post new sample.
                         Console.WriteLine("Posting hard coded data.");
                         Console.WriteLine();
                         await Post();
@@ -134,7 +149,7 @@ namespace Shortener_Client
                         break;
 
                     case 4:
-
+                        //Delete a sample with an ID that the user specifies.
                         Console.WriteLine("Enter the ID of the Sample you want to delete");
                         Console.WriteLine();
 
@@ -152,7 +167,7 @@ namespace Shortener_Client
                         break;
 
                     case 5:
-
+                        //Put data to the api and overwrite existing data.
                         Console.WriteLine("Enter the ID of the sample you want overwrite");
                         Console.WriteLine();
                         input = 0;
@@ -169,7 +184,7 @@ namespace Shortener_Client
                         break;
 
                     case 6:
-
+                        //Put an MP3's data to the data api
                         Console.WriteLine("Enter the ID of the blob you want to put to");
                         Console.WriteLine();
 
@@ -187,7 +202,7 @@ namespace Shortener_Client
                         break;
 
                     case 7:
-
+                        //Download data from a blob.
                         Console.WriteLine("Enter the ID of the blob you want to get");
                         Console.WriteLine();
 
@@ -211,6 +226,7 @@ namespace Shortener_Client
                         break;
 
                     default:
+                        //handle invalid numeric options.
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine("Invalid input integer, try again..");
                         Console.WriteLine();
@@ -220,6 +236,7 @@ namespace Shortener_Client
             }
             else
             {
+                //Handle invalid options.
                 Console.WriteLine("Please enter an integer");
                 Console.WriteLine();
 
@@ -238,6 +255,7 @@ namespace Shortener_Client
                 await ReturnToMenu();
             } else
             {
+                //Send token in request header.
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
             }
 
@@ -246,7 +264,9 @@ namespace Shortener_Client
             response = await client.GetAsync("api/samples");
             if (response.IsSuccessStatusCode)
             {
+                //Convert the JSON to Sample objects.
                 IEnumerable<Sample> samples = await response.Content.ReadAsAsync<IEnumerable<Sample>>();
+                //Display the Sample data
                 Console.WriteLine("Samples:");
                 Console.WriteLine();
 
@@ -275,6 +295,7 @@ namespace Shortener_Client
             }
             else
             {
+                //Send token in request header.
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
             }
 
@@ -283,8 +304,10 @@ namespace Shortener_Client
             response = await client.GetAsync("api/samples/" + id);
             if (response.IsSuccessStatusCode)
             {
-
+                //Convert Json to Sample Object.
                 Sample sample = await response.Content.ReadAsAsync<Sample>();
+
+                //Display Sample data on console.
                 Console.WriteLine("Samples:");
 
                 Console.WriteLine("{0}\t{1}\t{2}\t{3}", "ID     ", "Title     ", "Artist     ", "Date     ");
@@ -308,6 +331,7 @@ namespace Shortener_Client
             }
             else
             {
+                //Send token in request header.
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
             }
 
@@ -335,10 +359,11 @@ namespace Shortener_Client
             }
             else
             {
+                //Send token in request header.
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
             }
 
-            //Delete a sample
+            //Send a http delete to the Api with the ID to delete
             HttpResponseMessage response;
             response = await client.DeleteAsync("api/samples/" + id);
 
@@ -362,6 +387,7 @@ namespace Shortener_Client
             }
             else
             {
+                //Send token in request header.
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
             }
 
@@ -372,8 +398,9 @@ namespace Shortener_Client
             {
                 Sample sample = await response.Content.ReadAsAsync<Sample>();
 
-                //Update record by prepending 'New'to its Title
+                //Update record by prepending 'New' to its Title
                 sample.Title = "New " + sample.Title;
+                //Reset other attributes to null.
                 sample.MP3Blob = null;
                 sample.SampleMP3Blob = null;
                 sample.SampleMP3URL = null;
@@ -399,15 +426,17 @@ namespace Shortener_Client
             }
             else
             {
+                //Send token in request header.
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
             }
 
-            //Put blob to container over http
+            //Put blob to container over http.
 
             string path = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + @"\Upload\Largo.mp3");
 
             using (var stream = File.OpenRead(path))
             {
+                //Write file stream to the API.
                 HttpResponseMessage res = await client.PutAsync("api/data/" + id, new StreamContent(stream));
                 res.EnsureSuccessStatusCode();
 
@@ -428,7 +457,7 @@ namespace Shortener_Client
             // first, try to get a token silently
             try
             {
-                result = authContext.AcquireTokenSilent(todoListResourceId, clientId);
+                result = authContext.AcquireTokenSilent(shortenerResourceId, clientId);
             }
             catch (AdalException ex)
             {
@@ -440,7 +469,7 @@ namespace Shortener_Client
                     // UserCredential uc = new UserCredential();
                     try
                     {
-                        result = authContext.AcquireToken(todoListResourceId, clientId, uc);
+                        result = authContext.AcquireToken(shortenerResourceId, clientId, uc);
                         await ShowName();
                     }
                     catch (Exception ee)
@@ -469,14 +498,15 @@ namespace Shortener_Client
             }
             else
             {
+                //Send token in request header.
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
             }
-
+            //Get the user's name from the API
             HttpResponseMessage response;
             response = await client.GetAsync("api/name");
             if (response.IsSuccessStatusCode)
             {
-
+                //Display greeting to the user.
                 String name = await response.Content.ReadAsStringAsync();
 
                 Console.ForegroundColor = ConsoleColor.Green;
@@ -497,6 +527,7 @@ namespace Shortener_Client
             }
             else
             {
+                //Send token in request header.
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
             }
 
@@ -508,6 +539,7 @@ namespace Shortener_Client
 
             if (response.IsSuccessStatusCode) {
 
+                //Save stream to a file.
                 byte[] bytes = response.Content.ReadAsByteArrayAsync().Result;
                 Console.WriteLine("Downloaded {0} bytes", bytes.Length);
                 using (FileStream fileStream = new FileStream(path,
@@ -531,6 +563,7 @@ namespace Shortener_Client
 
         static string ReadPasswordFromConsole()
         {
+            //Hide password as it is being typed.
             string password = string.Empty;
             ConsoleKeyInfo key;
             do
@@ -556,6 +589,7 @@ namespace Shortener_Client
 
         static void ShowError(Exception ex)
         {
+            //Display an error the the user.
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("An unexpected error occurred.");
             string message = ex.Message;
@@ -568,6 +602,7 @@ namespace Shortener_Client
 
         static UserCredential TextualPrompt()
         {
+            //Get user's login details.
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("There is no token in the cache or you are not connected to your domain.");
             Console.WriteLine("Please enter username and password to sign in.");
@@ -582,6 +617,7 @@ namespace Shortener_Client
 
         private static async Task ReturnToMenu()
         {
+            //Returns the user to the Menu method.
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine();
             Console.WriteLine("Press any key to continue");
@@ -592,6 +628,7 @@ namespace Shortener_Client
 
         static void ClearCache()
         {
+            //Deletes the Auth token.
             authContext.TokenCache.Clear();
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("Token cache cleared.");

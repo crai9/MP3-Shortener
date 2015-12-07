@@ -156,13 +156,16 @@ namespace Shortener_ApiWebRole.Controllers
 
             //Check if there was a previous 
             var oldSample = db.Samples.Find(id);
-
-            if (GetSoundsContainer().GetBlockBlobReference(oldSample.SampleMP3Blob).Exists())
+            if (oldSample.SampleMP3Blob != null)
             {
-                //Delete the old blob
-                CloudBlockBlob blob = GetSoundsContainer().GetBlockBlobReference(oldSample.SampleMP3Blob);
-                blob.Delete();
+                if (GetSoundsContainer().GetBlockBlobReference(oldSample.SampleMP3Blob).Exists())
+                {
+                    //Delete the old blob
+                    CloudBlockBlob blob = GetSoundsContainer().GetBlockBlobReference(oldSample.SampleMP3Blob);
+                    blob.Delete();
+                }
             }
+
 
             db.Entry(oldSample).State = EntityState.Detached;
             //Update the record.
